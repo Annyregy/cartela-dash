@@ -137,10 +137,11 @@ export const INITIAL_CUSTOMERS: Customer[] = [
 ];
 
 export const INITIAL_PRODUCTS: Product[] = [
-  { id: "p1", name: "Cartela Ovos Brancos Grande", unit: "Cartela 30 un", price: 22.0, stock: 50 },
-  { id: "p2", name: "Cartela Ovos Vermelhos", unit: "Cartela 30 un", price: 25.0, stock: 40 },
-  { id: "p3", name: "Cartela Ovos Caipira", unit: "Cartela 20 un", price: 28.0, stock: 30 },
-  { id: "p4", name: "Dúzia de Ovos", unit: "12 un", price: 12.0, stock: 80 },
-  { id: "p5", name: "Cartela Ovos Brancos Médio", unit: "Cartela 30 un", price: 20.0, stock: 60 },
-  { id: "p6", name: "Meia Dúzia de Ovos", unit: "6 un", price: 7.0, stock: 100 },
+  { id: "p1", name: "Ovos Brancos", unit: "1/30", price: 21.0, stock: 50 },
+  { id: "p2", name: "Ovos Vermelhos/Marrons", unit: "1/30", price: 25.0, stock: 50 },
+  { id: "p3", name: "Ovos Extra", unit: "1/30", price: 23.0, stock: 40 },
+  { id: "p4", name: "Meia Cartela Brancos", unit: "1/15", price: 12.0, stock: 60 },
+  { id: "p5", name: "Ovos Vermelhos Fracionado", unit: "1/20", price: 17.0, stock: 40 },
+  { id: "p6", name: "Ovos De Codorna", unit: "1/30", price: 10.0, stock: 30 },
 ];
+
