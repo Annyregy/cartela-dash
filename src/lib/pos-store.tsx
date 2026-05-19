@@ -84,9 +84,32 @@ export function PosProvider({ children }: { children: ReactNode }) {
     setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, paymentStatus: "Pendente" } : o)));
   };
 
+  const addProduct: State["addProduct"] = (p) => {
+    setProducts((prev) => [...prev, { ...p, id: `p_${Date.now()}` }]);
+  };
+
+  const updateProduct: State["updateProduct"] = (id, patch) => {
+    setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
+  };
+
+  const deleteProduct: State["deleteProduct"] = (id) => {
+    setProducts((prev) => prev.filter((p) => p.id !== id));
+  };
+
   return (
     <Ctx.Provider
-      value={{ customers: INITIAL_CUSTOMERS, products, orders, addOrder, completeDelivery, markPaid, markUnpaid }}
+      value={{
+        customers: INITIAL_CUSTOMERS,
+        products,
+        orders,
+        addOrder,
+        completeDelivery,
+        markPaid,
+        markUnpaid,
+        addProduct,
+        updateProduct,
+        deleteProduct,
+      }}
     >
       {children}
     </Ctx.Provider>
