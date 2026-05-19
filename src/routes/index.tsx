@@ -50,6 +50,9 @@ function Index() {
               <TabButton active={tab === "pedido"} onClick={() => setTab("pedido")} icon={<ShoppingBag className="size-4" />}>
                 Novo Pedido
               </TabButton>
+              <TabButton active={tab === "produtos"} onClick={() => setTab("produtos")} icon={<Package className="size-4" />}>
+                Produtos
+              </TabButton>
               <TabButton active={tab === "rotas"} onClick={() => setTab("rotas")} icon={<RouteIcon className="size-4" />}>
                 Rotas e Logística
               </TabButton>
@@ -60,14 +63,16 @@ function Index() {
         <main className="max-w-6xl mx-auto px-4 py-5">
           {tab === "painel" && <Dashboard />}
           {tab === "pedido" && <NewOrder />}
+          {tab === "produtos" && <Products />}
           {tab === "rotas" && <RoutesLogistics />}
         </main>
 
         {/* Mobile bottom nav */}
         <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 bg-surface border-t border-border">
-          <div className="grid grid-cols-3">
+          <div className="grid grid-cols-4">
             <BottomTab active={tab === "painel"} onClick={() => setTab("painel")} icon={<LayoutDashboard className="size-5" />} label="Painel" />
             <BottomTab active={tab === "pedido"} onClick={() => setTab("pedido")} icon={<ShoppingBag className="size-5" />} label="Pedido" />
+            <BottomTab active={tab === "produtos"} onClick={() => setTab("produtos")} icon={<Package className="size-5" />} label="Produtos" />
             <BottomTab active={tab === "rotas"} onClick={() => setTab("rotas")} icon={<RouteIcon className="size-5" />} label="Rotas" />
           </div>
         </nav>
