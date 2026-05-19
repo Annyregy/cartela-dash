@@ -21,7 +21,7 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-type Tab = "painel" | "pedido" | "rotas";
+type Tab = "painel" | "pedido" | "produtos" | "rotas";
 
 function Index() {
   const [tab, setTab] = useState<Tab>("painel");
