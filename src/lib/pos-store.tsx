@@ -18,6 +18,9 @@ type State = {
   completeDelivery: (id: string) => void;
   markPaid: (id: string) => void;
   markUnpaid: (id: string) => void;
+  addProduct: (p: Omit<Product, "id">) => void;
+  updateProduct: (id: string, p: Partial<Omit<Product, "id">>) => void;
+  deleteProduct: (id: string) => void;
 };
 
 const KEY = "pos-store-v1";
