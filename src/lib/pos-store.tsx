@@ -16,6 +16,8 @@ type State = {
   orders: Order[];
   addOrder: (o: Omit<Order, "id" | "createdAt">) => Order;
   completeDelivery: (id: string) => void;
+  markPaid: (id: string) => void;
+  markUnpaid: (id: string) => void;
 };
 
 const KEY = "pos-store-v1";
