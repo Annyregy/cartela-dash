@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Egg, LayoutDashboard, Route as RouteIcon, ShoppingBag } from "lucide-react";
+import { Egg, LayoutDashboard, Package, Route as RouteIcon, ShoppingBag } from "lucide-react";
 import { PosProvider } from "@/lib/pos-store";
 import { NewOrder } from "@/components/pos/NewOrder";
 import { RoutesLogistics } from "@/components/pos/RoutesLogistics";
 import { Dashboard } from "@/components/pos/Dashboard";
+import { Products } from "@/components/pos/Products";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/")({
