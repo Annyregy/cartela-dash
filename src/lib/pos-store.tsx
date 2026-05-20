@@ -203,4 +203,4 @@ export const buildReceipt = (order: Order) => {
 export const whatsappLink = (phone: string, message: string) =>
   `https://wa.me/${phone.replace(/\D/g, "")}?text=${encodeURIComponent(message)}`;
 
-export type { CartItem, Customer, Order, Product, PaymentMethod, PaymentStatus, Supplier, Purchase };
+export type { CartItem, Customer, Order, Product, PaymentMethod, PaymentStatus, Supplier, Purchase, PurchaseItem } from "./pos-data";
