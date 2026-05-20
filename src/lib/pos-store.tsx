@@ -2,18 +2,25 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import {
   INITIAL_CUSTOMERS,
   INITIAL_PRODUCTS,
+  INITIAL_SUPPLIERS,
+  SEED_ORDERS,
+  SEED_PURCHASES,
   type CartItem,
   type Customer,
   type Order,
   type Product,
   type PaymentMethod,
   type PaymentStatus,
+  type Purchase,
+  type Supplier,
 } from "./pos-data";
 
 type State = {
   customers: Customer[];
   products: Product[];
   orders: Order[];
+  suppliers: Supplier[];
+  purchases: Purchase[];
   addOrder: (o: Omit<Order, "id" | "createdAt">) => Order;
   completeDelivery: (id: string) => void;
   markPaid: (id: string) => void;
@@ -21,44 +28,66 @@ type State = {
   addProduct: (p: Omit<Product, "id">) => void;
   updateProduct: (id: string, p: Partial<Omit<Product, "id">>) => void;
   deleteProduct: (id: string) => void;
+  addSupplier: (s: Omit<Supplier, "id">) => void;
+  updateSupplier: (id: string, s: Partial<Omit<Supplier, "id">>) => void;
+  deleteSupplier: (id: string) => void;
+  addPurchase: (p: Omit<Purchase, "id" | "createdAt"> & { createdAt?: string }) => Purchase;
+  deletePurchase: (id: string) => void;
 };
 
-const KEY = "pos-store-v1";
+const KEY = "pos-store-v2";
 const Ctx = createContext<State | null>(null);
 
-type Persisted = { products: Product[]; orders: Order[] };
+type Persisted = {
+  products: Product[];
+  orders: Order[];
+  suppliers: Supplier[];
+  purchases: Purchase[];
+};
 
 function load(): Persisted {
-  if (typeof window === "undefined") return { products: INITIAL_PRODUCTS, orders: [] };
+  const fallback: Persisted = {
+    products: INITIAL_PRODUCTS,
+    orders: SEED_ORDERS,
+    suppliers: INITIAL_SUPPLIERS,
+    purchases: SEED_PURCHASES,
+  };
+  if (typeof window === "undefined") return fallback;
   try {
     const raw = window.localStorage.getItem(KEY);
-    if (!raw) return { products: INITIAL_PRODUCTS, orders: [] };
+    if (!raw) return fallback;
     const parsed = JSON.parse(raw) as Partial<Persisted>;
     return {
       products: parsed.products ?? INITIAL_PRODUCTS,
-      orders: parsed.orders ?? [],
+      orders: parsed.orders ?? SEED_ORDERS,
+      suppliers: parsed.suppliers ?? INITIAL_SUPPLIERS,
+      purchases: parsed.purchases ?? SEED_PURCHASES,
     };
   } catch {
-    return { products: INITIAL_PRODUCTS, orders: [] };
+    return fallback;
   }
 }
 
 export function PosProvider({ children }: { children: ReactNode }) {
   const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>(INITIAL_SUPPLIERS);
+  const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
     const p = load();
     setProducts(p.products);
     setOrders(p.orders);
+    setSuppliers(p.suppliers);
+    setPurchases(p.purchases);
     setHydrated(true);
   }, []);
 
   useEffect(() => {
     if (!hydrated) return;
-    window.localStorage.setItem(KEY, JSON.stringify({ products, orders }));
-  }, [products, orders, hydrated]);
+    window.localStorage.setItem(KEY, JSON.stringify({ products, orders, suppliers, purchases }));
+  }, [products, orders, suppliers, purchases, hydrated]);
 
   const addOrder: State["addOrder"] = (o) => {
     const order: Order = { ...o, id: `o_${Date.now()}`, createdAt: new Date().toISOString() };
@@ -72,29 +101,52 @@ export function PosProvider({ children }: { children: ReactNode }) {
     return order;
   };
 
-  const completeDelivery: State["completeDelivery"] = (id) => {
+  const completeDelivery: State["completeDelivery"] = (id) =>
     setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, deliveryStatus: "concluido" } : o)));
-  };
 
-  const markPaid: State["markPaid"] = (id) => {
+  const markPaid: State["markPaid"] = (id) =>
     setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, paymentStatus: "Pago" } : o)));
-  };
 
-  const markUnpaid: State["markUnpaid"] = (id) => {
+  const markUnpaid: State["markUnpaid"] = (id) =>
     setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, paymentStatus: "Pendente" } : o)));
-  };
 
-  const addProduct: State["addProduct"] = (p) => {
+  const addProduct: State["addProduct"] = (p) =>
     setProducts((prev) => [...prev, { ...p, id: `p_${Date.now()}` }]);
-  };
 
-  const updateProduct: State["updateProduct"] = (id, patch) => {
+  const updateProduct: State["updateProduct"] = (id, patch) =>
     setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
+
+  const deleteProduct: State["deleteProduct"] = (id) =>
+    setProducts((prev) => prev.filter((p) => p.id !== id));
+
+  const addSupplier: State["addSupplier"] = (s) =>
+    setSuppliers((prev) => [...prev, { ...s, id: `s_${Date.now()}` }]);
+
+  const updateSupplier: State["updateSupplier"] = (id, patch) =>
+    setSuppliers((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
+
+  const deleteSupplier: State["deleteSupplier"] = (id) =>
+    setSuppliers((prev) => prev.filter((s) => s.id !== id));
+
+  const addPurchase: State["addPurchase"] = (p) => {
+    const purchase: Purchase = {
+      ...p,
+      id: `buy_${Date.now()}`,
+      createdAt: p.createdAt ?? new Date().toISOString(),
+    };
+    // Atualiza estoque ao registrar a compra
+    setProducts((prev) =>
+      prev.map((pr) => {
+        const item = p.items.find((i) => i.productId === pr.id);
+        return item ? { ...pr, stock: pr.stock + item.quantity } : pr;
+      })
+    );
+    setPurchases((prev) => [purchase, ...prev]);
+    return purchase;
   };
 
-  const deleteProduct: State["deleteProduct"] = (id) => {
-    setProducts((prev) => prev.filter((p) => p.id !== id));
-  };
+  const deletePurchase: State["deletePurchase"] = (id) =>
+    setPurchases((prev) => prev.filter((p) => p.id !== id));
 
   return (
     <Ctx.Provider
@@ -102,6 +154,8 @@ export function PosProvider({ children }: { children: ReactNode }) {
         customers: INITIAL_CUSTOMERS,
         products,
         orders,
+        suppliers,
+        purchases,
         addOrder,
         completeDelivery,
         markPaid,
@@ -109,6 +163,11 @@ export function PosProvider({ children }: { children: ReactNode }) {
         addProduct,
         updateProduct,
         deleteProduct,
+        addSupplier,
+        updateSupplier,
+        deleteSupplier,
+        addPurchase,
+        deletePurchase,
       }}
     >
       {children}
@@ -144,4 +203,4 @@ export const buildReceipt = (order: Order) => {
 export const whatsappLink = (phone: string, message: string) =>
   `https://wa.me/${phone.replace(/\D/g, "")}?text=${encodeURIComponent(message)}`;
 
-export type { CartItem, Customer, Order, Product, PaymentMethod, PaymentStatus };
+export type { CartItem, Customer, Order, Product, PaymentMethod, PaymentStatus, Supplier, Purchase, PurchaseItem } from "./pos-data";

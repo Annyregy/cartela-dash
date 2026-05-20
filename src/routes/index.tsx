@@ -1,11 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Egg, LayoutDashboard, Package, Route as RouteIcon, ShoppingBag } from "lucide-react";
+import { Egg, LayoutDashboard, Package, Route as RouteIcon, ShoppingBag, Truck } from "lucide-react";
 import { PosProvider } from "@/lib/pos-store";
 import { NewOrder } from "@/components/pos/NewOrder";
 import { RoutesLogistics } from "@/components/pos/RoutesLogistics";
 import { Dashboard } from "@/components/pos/Dashboard";
 import { Products } from "@/components/pos/Products";
+import { Suppliers } from "@/components/pos/Suppliers";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/")({
@@ -21,7 +22,7 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-type Tab = "painel" | "pedido" | "produtos" | "rotas";
+type Tab = "painel" | "pedido" | "produtos" | "fornecedor" | "rotas";
 
 function Index() {
   const [tab, setTab] = useState<Tab>("painel");
@@ -53,8 +54,11 @@ function Index() {
               <TabButton active={tab === "produtos"} onClick={() => setTab("produtos")} icon={<Package className="size-4" />}>
                 Produtos
               </TabButton>
+              <TabButton active={tab === "fornecedor"} onClick={() => setTab("fornecedor")} icon={<Truck className="size-4" />}>
+                Fornecedor
+              </TabButton>
               <TabButton active={tab === "rotas"} onClick={() => setTab("rotas")} icon={<RouteIcon className="size-4" />}>
-                Rotas e Logística
+                Rotas
               </TabButton>
             </nav>
           </div>
@@ -64,15 +68,17 @@ function Index() {
           {tab === "painel" && <Dashboard />}
           {tab === "pedido" && <NewOrder />}
           {tab === "produtos" && <Products />}
+          {tab === "fornecedor" && <Suppliers />}
           {tab === "rotas" && <RoutesLogistics />}
         </main>
 
         {/* Mobile bottom nav */}
         <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 bg-surface border-t border-border">
-          <div className="grid grid-cols-4">
+          <div className="grid grid-cols-5">
             <BottomTab active={tab === "painel"} onClick={() => setTab("painel")} icon={<LayoutDashboard className="size-5" />} label="Painel" />
             <BottomTab active={tab === "pedido"} onClick={() => setTab("pedido")} icon={<ShoppingBag className="size-5" />} label="Pedido" />
             <BottomTab active={tab === "produtos"} onClick={() => setTab("produtos")} icon={<Package className="size-5" />} label="Produtos" />
+            <BottomTab active={tab === "fornecedor"} onClick={() => setTab("fornecedor")} icon={<Truck className="size-5" />} label="Fornec." />
             <BottomTab active={tab === "rotas"} onClick={() => setTab("rotas")} icon={<RouteIcon className="size-5" />} label="Rotas" />
           </div>
         </nav>
