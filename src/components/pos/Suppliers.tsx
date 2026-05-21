@@ -658,12 +658,17 @@ function PriceHistory() {
 function PurchaseRow({
   row,
   onDelete,
+  onView,
 }: {
   row: { date: Date; qty: number; unitCost: number; supplier: string; purchaseId: string };
   onDelete: () => void;
+  onView: () => void;
 }) {
   return (
-    <div className="px-4 py-3 flex items-center justify-between gap-3">
+    <button
+      onClick={onView}
+      className="w-full px-4 py-3 flex items-center justify-between gap-3 text-left hover:bg-muted/30 transition"
+    >
       <div className="min-w-0">
         <div className="text-sm font-semibold text-foreground">
           {row.date.toLocaleDateString("pt-BR")}
@@ -677,17 +682,30 @@ function PurchaseRow({
           <div className="text-gold font-bold tabular-nums">{formatBRL(row.unitCost)}</div>
           <div className="text-[10px] text-muted-foreground">por unidade</div>
         </div>
-        <button
-          onClick={() => {
-            if (confirm("Remover esta compra do histórico?")) onDelete();
-          }}
-          className="p-1.5 rounded-md bg-destructive/15 text-destructive hover:bg-destructive/25"
-          aria-label="Remover"
-        >
-          <Trash2 className="size-3.5" />
-        </button>
+        <div className="flex items-center gap-1">
+          <span
+            onClick={(e) => {
+              e.stopPropagation();
+              onView();
+            }}
+            className="p-1.5 rounded-md bg-gold/15 text-gold hover:bg-gold/25 cursor-pointer"
+            aria-label="Ver detalhes"
+          >
+            <Eye className="size-3.5" />
+          </span>
+          <span
+            onClick={(e) => {
+              e.stopPropagation();
+              if (confirm("Remover esta compra do histórico?")) onDelete();
+            }}
+            className="p-1.5 rounded-md bg-destructive/15 text-destructive hover:bg-destructive/25 cursor-pointer"
+            aria-label="Remover"
+          >
+            <Trash2 className="size-3.5" />
+          </span>
+        </div>
       </div>
-    </div>
+    </button>
   );
 }
 
