@@ -716,6 +716,77 @@ function PurchaseRow({
   );
 }
 
+function PurchaseDetailModal({
+  purchase,
+  onClose,
+}: {
+  purchase: Purchase;
+  onClose: () => void;
+}) {
+  const dateStr = new Date(purchase.createdAt).toLocaleDateString("pt-BR");
+  const totalItems = purchase.items.reduce((s, it) => s + it.quantity * it.unitCost, 0);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <div
+        className="w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-2xl bg-surface border border-border shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="px-5 py-4 border-b border-border flex items-center justify-between gap-3">
+          <div>
+            <div className="text-foreground font-bold text-lg leading-tight">Detalhes da Compra</div>
+            <div className="text-xs text-muted-foreground mt-0.5">{dateStr} • {purchase.supplierName}</div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-lg bg-muted text-foreground hover:bg-muted/70 transition"
+            aria-label="Fechar"
+          >
+            <X className="size-5" />
+          </button>
+        </div>
+
+        <div className="px-5 py-4 space-y-4">
+          {purchase.notes && (
+            <div className="text-sm text-muted-foreground bg-muted/30 rounded-lg px-3 py-2">
+              {purchase.notes}
+            </div>
+          )}
+
+          <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
+            Itens comprados
+          </div>
+          <div className="space-y-2">
+            {purchase.items.map((it) => (
+              <div
+                key={it.productId}
+                className="rounded-xl bg-muted/20 border border-border p-3 flex items-center justify-between gap-3"
+              >
+                <div className="min-w-0">
+                  <div className="font-semibold text-foreground truncate">{it.productName}</div>
+                  <div className="text-xs text-muted-foreground">{it.unit} • {it.quantity} un.</div>
+                </div>
+                <div className="text-right shrink-0">
+                  <div className="text-gold font-bold tabular-nums">{formatBRL(it.unitCost)}</div>
+                  <div className="text-[10px] text-muted-foreground">unitário</div>
+                  <div className="text-sm font-semibold text-foreground tabular-nums mt-0.5">
+                    {formatBRL(it.quantity * it.unitCost)}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="rounded-xl bg-gold/10 border border-gold/30 p-4 flex items-center justify-between">
+            <span className="text-xs uppercase tracking-wider text-gold/80 font-semibold">Total da compra</span>
+            <span className="text-2xl font-bold text-gold tabular-nums">{formatBRL(totalItems)}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Stat({
   label,
   value,
