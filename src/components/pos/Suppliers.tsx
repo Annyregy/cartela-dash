@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ArrowDownRight, ArrowUpRight, Building2, History, Minus, Plus, Trash2, TrendingUp } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Building2, ChevronDown, Eye, History, Minus, Plus, Trash2, TrendingUp, X } from "lucide-react";
 import { formatBRL, usePos, type Purchase, type PurchaseItem } from "@/lib/pos-store";
 import { cn } from "@/lib/utils";
 
@@ -413,6 +413,12 @@ function NewPurchase({ onDone }: { onDone: () => void }) {
 function PriceHistory() {
   const { products, purchases, deletePurchase } = usePos();
   const [productId, setProductId] = useState(products[0]?.id ?? "");
+  const [detailPurchaseId, setDetailPurchaseId] = useState<string | null>(null);
+
+  const detailPurchase = useMemo(
+    () => purchases.find((p) => p.id === detailPurchaseId) ?? null,
+    [purchases, detailPurchaseId]
+  );
 
   // Linhas planas por produto: { date, qty, unitCost, supplier, purchaseId, monthKey }
   type Row = {
@@ -583,32 +589,45 @@ function PriceHistory() {
                 const nextOlder = arr[i + 1];
                 const delta = nextOlder ? m.avg - nextOlder.avg : 0;
                 return (
-                  <div key={m.monthKey} className="px-4 py-3 flex items-center justify-between gap-3">
-                    <div>
-                      <div className="font-bold capitalize text-foreground">{m.label}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {m.count} {m.count === 1 ? "compra" : "compras"} • {m.qty} un.
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-gold font-bold tabular-nums">{formatBRL(m.avg)}</div>
-                      {nextOlder && (
-                        <div
-                          className={cn(
-                            "text-xs flex items-center justify-end gap-0.5 tabular-nums",
-                            delta > 0 ? "text-warning" : delta < 0 ? "text-success" : "text-muted-foreground"
-                          )}
-                        >
-                          {delta > 0 ? (
-                            <ArrowUpRight className="size-3" />
-                          ) : delta < 0 ? (
-                            <ArrowDownRight className="size-3" />
-                          ) : null}
-                          {delta === 0 ? "estável" : formatBRL(Math.abs(delta))}
-                        </div>
-                      )}
+                <button
+                  key={m.monthKey}
+                  onClick={() => {
+                    const ids = new Set(
+                      rows.filter((r) => r.monthKey === m.monthKey).map((r) => r.purchaseId)
+                    );
+                    const idsArr = Array.from(ids);
+                    if (idsArr.length === 1) setDetailPurchaseId(idsArr[0]);
+                  }}
+                  className={cn(
+                    "w-full px-4 py-3 flex items-center justify-between gap-3 text-left",
+                    rows.some((r) => r.monthKey === m.monthKey) ? "hover:bg-muted/30 cursor-pointer" : ""
+                  )}
+                >
+                  <div>
+                    <div className="font-bold capitalize text-foreground">{m.label}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {m.count} {m.count === 1 ? "compra" : "compras"} • {m.qty} un.
                     </div>
                   </div>
+                  <div className="text-right">
+                    <div className="text-gold font-bold tabular-nums">{formatBRL(m.avg)}</div>
+                    {nextOlder && (
+                      <div
+                        className={cn(
+                          "text-xs flex items-center justify-end gap-0.5 tabular-nums",
+                          delta > 0 ? "text-warning" : delta < 0 ? "text-success" : "text-muted-foreground"
+                        )}
+                      >
+                        {delta > 0 ? (
+                          <ArrowUpRight className="size-3" />
+                        ) : delta < 0 ? (
+                          <ArrowDownRight className="size-3" />
+                        ) : null}
+                        {delta === 0 ? "estável" : formatBRL(Math.abs(delta))}
+                      </div>
+                    )}
+                  </div>
+                </button>
                 );
               })}
             </div>
@@ -621,11 +640,23 @@ function PriceHistory() {
             </div>
             <div className="divide-y divide-border">
               {rows.map((r, i) => (
-                <PurchaseRow key={`${r.purchaseId}-${i}`} row={r} onDelete={() => deletePurchase(r.purchaseId)} />
+                <PurchaseRow
+                  key={`${r.purchaseId}-${i}`}
+                  row={r}
+                  onDelete={() => deletePurchase(r.purchaseId)}
+                  onView={() => setDetailPurchaseId(r.purchaseId)}
+                />
               ))}
             </div>
           </div>
         </>
+      )}
+
+      {detailPurchase && (
+        <PurchaseDetailModal
+          purchase={detailPurchase}
+          onClose={() => setDetailPurchaseId(null)}
+        />
       )}
     </div>
   );
@@ -634,12 +665,17 @@ function PriceHistory() {
 function PurchaseRow({
   row,
   onDelete,
+  onView,
 }: {
   row: { date: Date; qty: number; unitCost: number; supplier: string; purchaseId: string };
   onDelete: () => void;
+  onView: () => void;
 }) {
   return (
-    <div className="px-4 py-3 flex items-center justify-between gap-3">
+    <button
+      onClick={onView}
+      className="w-full px-4 py-3 flex items-center justify-between gap-3 text-left hover:bg-muted/30 transition"
+    >
       <div className="min-w-0">
         <div className="text-sm font-semibold text-foreground">
           {row.date.toLocaleDateString("pt-BR")}
@@ -653,15 +689,99 @@ function PurchaseRow({
           <div className="text-gold font-bold tabular-nums">{formatBRL(row.unitCost)}</div>
           <div className="text-[10px] text-muted-foreground">por unidade</div>
         </div>
-        <button
-          onClick={() => {
-            if (confirm("Remover esta compra do histórico?")) onDelete();
-          }}
-          className="p-1.5 rounded-md bg-destructive/15 text-destructive hover:bg-destructive/25"
-          aria-label="Remover"
-        >
-          <Trash2 className="size-3.5" />
-        </button>
+        <div className="flex items-center gap-1">
+          <span
+            onClick={(e) => {
+              e.stopPropagation();
+              onView();
+            }}
+            className="p-1.5 rounded-md bg-gold/15 text-gold hover:bg-gold/25 cursor-pointer"
+            aria-label="Ver detalhes"
+          >
+            <Eye className="size-3.5" />
+          </span>
+          <span
+            onClick={(e) => {
+              e.stopPropagation();
+              if (confirm("Remover esta compra do histórico?")) onDelete();
+            }}
+            className="p-1.5 rounded-md bg-destructive/15 text-destructive hover:bg-destructive/25 cursor-pointer"
+            aria-label="Remover"
+          >
+            <Trash2 className="size-3.5" />
+          </span>
+        </div>
+      </div>
+    </button>
+  );
+}
+
+function PurchaseDetailModal({
+  purchase,
+  onClose,
+}: {
+  purchase: Purchase;
+  onClose: () => void;
+}) {
+  const dateStr = new Date(purchase.createdAt).toLocaleDateString("pt-BR");
+  const totalItems = purchase.items.reduce((s, it) => s + it.quantity * it.unitCost, 0);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <div
+        className="w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-2xl bg-surface border border-border shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="px-5 py-4 border-b border-border flex items-center justify-between gap-3">
+          <div>
+            <div className="text-foreground font-bold text-lg leading-tight">Detalhes da Compra</div>
+            <div className="text-xs text-muted-foreground mt-0.5">{dateStr} • {purchase.supplierName}</div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-lg bg-muted text-foreground hover:bg-muted/70 transition"
+            aria-label="Fechar"
+          >
+            <X className="size-5" />
+          </button>
+        </div>
+
+        <div className="px-5 py-4 space-y-4">
+          {purchase.notes && (
+            <div className="text-sm text-muted-foreground bg-muted/30 rounded-lg px-3 py-2">
+              {purchase.notes}
+            </div>
+          )}
+
+          <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
+            Itens comprados
+          </div>
+          <div className="space-y-2">
+            {purchase.items.map((it) => (
+              <div
+                key={it.productId}
+                className="rounded-xl bg-muted/20 border border-border p-3 flex items-center justify-between gap-3"
+              >
+                <div className="min-w-0">
+                  <div className="font-semibold text-foreground truncate">{it.productName}</div>
+                  <div className="text-xs text-muted-foreground">{it.unit} • {it.quantity} un.</div>
+                </div>
+                <div className="text-right shrink-0">
+                  <div className="text-gold font-bold tabular-nums">{formatBRL(it.unitCost)}</div>
+                  <div className="text-[10px] text-muted-foreground">unitário</div>
+                  <div className="text-sm font-semibold text-foreground tabular-nums mt-0.5">
+                    {formatBRL(it.quantity * it.unitCost)}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="rounded-xl bg-gold/10 border border-gold/30 p-4 flex items-center justify-between">
+            <span className="text-xs uppercase tracking-wider text-gold/80 font-semibold">Total da compra</span>
+            <span className="text-2xl font-bold text-gold tabular-nums">{formatBRL(totalItems)}</span>
+          </div>
+        </div>
       </div>
     </div>
   );
