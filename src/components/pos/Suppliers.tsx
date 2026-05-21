@@ -589,32 +589,45 @@ function PriceHistory() {
                 const nextOlder = arr[i + 1];
                 const delta = nextOlder ? m.avg - nextOlder.avg : 0;
                 return (
-                  <div key={m.monthKey} className="px-4 py-3 flex items-center justify-between gap-3">
-                    <div>
-                      <div className="font-bold capitalize text-foreground">{m.label}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {m.count} {m.count === 1 ? "compra" : "compras"} • {m.qty} un.
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-gold font-bold tabular-nums">{formatBRL(m.avg)}</div>
-                      {nextOlder && (
-                        <div
-                          className={cn(
-                            "text-xs flex items-center justify-end gap-0.5 tabular-nums",
-                            delta > 0 ? "text-warning" : delta < 0 ? "text-success" : "text-muted-foreground"
-                          )}
-                        >
-                          {delta > 0 ? (
-                            <ArrowUpRight className="size-3" />
-                          ) : delta < 0 ? (
-                            <ArrowDownRight className="size-3" />
-                          ) : null}
-                          {delta === 0 ? "estável" : formatBRL(Math.abs(delta))}
-                        </div>
-                      )}
+                <button
+                  key={m.monthKey}
+                  onClick={() => {
+                    const ids = new Set(
+                      rows.filter((r) => r.monthKey === m.monthKey).map((r) => r.purchaseId)
+                    );
+                    const idsArr = Array.from(ids);
+                    if (idsArr.length === 1) setDetailPurchaseId(idsArr[0]);
+                  }}
+                  className={cn(
+                    "w-full px-4 py-3 flex items-center justify-between gap-3 text-left",
+                    rows.some((r) => r.monthKey === m.monthKey) ? "hover:bg-muted/30 cursor-pointer" : ""
+                  )}
+                >
+                  <div>
+                    <div className="font-bold capitalize text-foreground">{m.label}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {m.count} {m.count === 1 ? "compra" : "compras"} • {m.qty} un.
                     </div>
                   </div>
+                  <div className="text-right">
+                    <div className="text-gold font-bold tabular-nums">{formatBRL(m.avg)}</div>
+                    {nextOlder && (
+                      <div
+                        className={cn(
+                          "text-xs flex items-center justify-end gap-0.5 tabular-nums",
+                          delta > 0 ? "text-warning" : delta < 0 ? "text-success" : "text-muted-foreground"
+                        )}
+                      >
+                        {delta > 0 ? (
+                          <ArrowUpRight className="size-3" />
+                        ) : delta < 0 ? (
+                          <ArrowDownRight className="size-3" />
+                        ) : null}
+                        {delta === 0 ? "estável" : formatBRL(Math.abs(delta))}
+                      </div>
+                    )}
+                  </div>
+                </button>
                 );
               })}
             </div>
