@@ -157,10 +157,22 @@ export function PosProvider({ children }: { children: ReactNode }) {
   const deletePurchase: State["deletePurchase"] = (id) =>
     setPurchases((prev) => prev.filter((p) => p.id !== id));
 
+  const addCustomer: State["addCustomer"] = (c) => {
+    const customer: Customer = { ...c, id: `c_${Date.now()}` };
+    setCustomers((prev) => [customer, ...prev]);
+    return customer;
+  };
+
+  const updateCustomer: State["updateCustomer"] = (id, patch) =>
+    setCustomers((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)));
+
+  const deleteCustomer: State["deleteCustomer"] = (id) =>
+    setCustomers((prev) => prev.filter((c) => c.id !== id));
+
   return (
     <Ctx.Provider
       value={{
-        customers: INITIAL_CUSTOMERS,
+        customers,
         products,
         orders,
         suppliers,
@@ -172,6 +184,9 @@ export function PosProvider({ children }: { children: ReactNode }) {
         addProduct,
         updateProduct,
         deleteProduct,
+        addCustomer,
+        updateCustomer,
+        deleteCustomer,
         addSupplier,
         updateSupplier,
         deleteSupplier,
