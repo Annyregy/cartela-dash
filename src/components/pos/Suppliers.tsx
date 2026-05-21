@@ -413,6 +413,12 @@ function NewPurchase({ onDone }: { onDone: () => void }) {
 function PriceHistory() {
   const { products, purchases, deletePurchase } = usePos();
   const [productId, setProductId] = useState(products[0]?.id ?? "");
+  const [detailPurchaseId, setDetailPurchaseId] = useState<string | null>(null);
+
+  const detailPurchase = useMemo(
+    () => purchases.find((p) => p.id === detailPurchaseId) ?? null,
+    [purchases, detailPurchaseId]
+  );
 
   // Linhas planas por produto: { date, qty, unitCost, supplier, purchaseId, monthKey }
   type Row = {
