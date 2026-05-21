@@ -640,7 +640,12 @@ function PriceHistory() {
             </div>
             <div className="divide-y divide-border">
               {rows.map((r, i) => (
-                <PurchaseRow key={`${r.purchaseId}-${i}`} row={r} onDelete={() => deletePurchase(r.purchaseId)} />
+                <PurchaseRow
+                  key={`${r.purchaseId}-${i}`}
+                  row={r}
+                  onDelete={() => deletePurchase(r.purchaseId)}
+                  onView={() => setDetailPurchaseId(r.purchaseId)}
+                />
               ))}
             </div>
           </div>
