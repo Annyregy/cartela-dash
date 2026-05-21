@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ArrowDownRight, ArrowUpRight, Building2, History, Minus, Plus, Trash2, TrendingUp } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Building2, ChevronDown, Eye, History, Minus, Plus, Trash2, TrendingUp, X } from "lucide-react";
 import { formatBRL, usePos, type Purchase, type PurchaseItem } from "@/lib/pos-store";
 import { cn } from "@/lib/utils";
 
