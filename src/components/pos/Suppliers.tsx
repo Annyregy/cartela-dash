@@ -651,6 +651,13 @@ function PriceHistory() {
           </div>
         </>
       )}
+
+      {detailPurchase && (
+        <PurchaseDetailModal
+          purchase={detailPurchase}
+          onClose={() => setDetailPurchaseId(null)}
+        />
+      )}
     </div>
   );
 }
