@@ -453,3 +453,45 @@ function SummaryContent({
     </div>
   );
 }
+
+function AdjustmentsGrid({
+  discountPercent,
+  setDiscountPercent,
+  discountValue,
+  setDiscountValue,
+  surchargePercent,
+  setSurchargePercent,
+  surchargeValue,
+  setSurchargeValue,
+}: {
+  discountPercent: string;
+  setDiscountPercent: (v: string) => void;
+  discountValue: string;
+  setDiscountValue: (v: string) => void;
+  surchargePercent: string;
+  setSurchargePercent: (v: string) => void;
+  surchargeValue: string;
+  setSurchargeValue: (v: string) => void;
+}) {
+  const field = "w-full bg-input border border-border rounded-md px-2 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring";
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      <label className="text-xs text-muted-foreground">
+        Desc. %
+        <input type="number" min="0" step="0.01" value={discountPercent} onChange={(e) => setDiscountPercent(e.target.value)} className={field} />
+      </label>
+      <label className="text-xs text-muted-foreground">
+        Desc. R$
+        <input type="number" min="0" step="0.01" value={discountValue} onChange={(e) => setDiscountValue(e.target.value)} className={field} />
+      </label>
+      <label className="text-xs text-muted-foreground">
+        Acrésc. %
+        <input type="number" min="0" step="0.01" value={surchargePercent} onChange={(e) => setSurchargePercent(e.target.value)} className={field} />
+      </label>
+      <label className="text-xs text-muted-foreground">
+        Acrésc. R$
+        <input type="number" min="0" step="0.01" value={surchargeValue} onChange={(e) => setSurchargeValue(e.target.value)} className={field} />
+      </label>
+    </div>
+  );
+}
