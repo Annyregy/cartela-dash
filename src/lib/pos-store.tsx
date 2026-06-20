@@ -28,7 +28,7 @@ type State = {
   addProduct: (p: Omit<Product, "id">) => void;
   updateProduct: (id: string, p: Partial<Omit<Product, "id">>) => void;
   deleteProduct: (id: string) => void;
-  addCustomer: (c: Omit<Customer, "id">) => Customer;
+  addCustomer: (c: Omit<Customer, "id" | "code"> & { code?: number }) => Customer;
   updateCustomer: (id: string, c: Partial<Omit<Customer, "id">>) => void;
   deleteCustomer: (id: string) => void;
   addSupplier: (s: Omit<Supplier, "id">) => void;
@@ -49,13 +49,32 @@ type Persisted = {
   customers: Customer[];
 };
 
+const numberFromId = (id: string, fallback: number) => {
+  const n = Number(id.replace(/\D/g, ""));
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+};
+
+const normalizeCustomers = (list: Customer[]) => {
+  const used = new Set<number>();
+  return list.map((c, index) => {
+    let code = Number(c.code ?? numberFromId(c.id, index + 1));
+    if (!Number.isFinite(code) || code <= 0) code = index + 1;
+    while (used.has(code)) code += 1;
+    used.add(code);
+    return { ...c, code };
+  });
+};
+
+const nextCustomerCode = (list: Customer[]) =>
+  Math.max(0, ...list.map((c, i) => Number(c.code ?? numberFromId(c.id, i + 1)))) + 1;
+
 function load(): Persisted {
   const fallback: Persisted = {
     products: INITIAL_PRODUCTS,
     orders: SEED_ORDERS,
     suppliers: INITIAL_SUPPLIERS,
     purchases: SEED_PURCHASES,
-    customers: INITIAL_CUSTOMERS,
+    customers: normalizeCustomers(INITIAL_CUSTOMERS),
   };
   if (typeof window === "undefined") return fallback;
   try {
@@ -67,7 +86,7 @@ function load(): Persisted {
       orders: parsed.orders ?? SEED_ORDERS,
       suppliers: parsed.suppliers ?? INITIAL_SUPPLIERS,
       purchases: parsed.purchases ?? SEED_PURCHASES,
-      customers: parsed.customers ?? INITIAL_CUSTOMERS,
+      customers: normalizeCustomers(parsed.customers ?? INITIAL_CUSTOMERS),
     };
   } catch {
     return fallback;
@@ -79,7 +98,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>(INITIAL_SUPPLIERS);
   const [purchases, setPurchases] = useState<Purchase[]>([]);
-  const [customers, setCustomers] = useState<Customer[]>(INITIAL_CUSTOMERS);
+  const [customers, setCustomers] = useState<Customer[]>(() => normalizeCustomers(INITIAL_CUSTOMERS));
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -158,7 +177,12 @@ export function PosProvider({ children }: { children: ReactNode }) {
     setPurchases((prev) => prev.filter((p) => p.id !== id));
 
   const addCustomer: State["addCustomer"] = (c) => {
-    const customer: Customer = { ...c, id: `c_${Date.now()}` };
+    const code = Number(c.code);
+    const customer: Customer = {
+      ...c,
+      code: Number.isFinite(code) && code > 0 ? code : nextCustomerCode(customers),
+      id: `c_${Date.now()}`,
+    };
     setCustomers((prev) => [customer, ...prev]);
     return customer;
   };
@@ -212,12 +236,19 @@ export const buildReceipt = (order: Order) => {
   const lines = order.items
     .map((i) => `• ${i.quantity}x ${i.name} — ${formatBRL(i.price * i.quantity)}`)
     .join("\n");
+  const adjustments = [
+    order.discountPercent ? `Desconto %: ${order.discountPercent}%` : "",
+    order.discountValue ? `Desconto R$: ${formatBRL(order.discountValue)}` : "",
+    order.surchargePercent ? `Acréscimo %: ${order.surchargePercent}%` : "",
+    order.surchargeValue ? `Acréscimo R$: ${formatBRL(order.surchargeValue)}` : "",
+  ].filter(Boolean).join("\n");
   return (
     `*Pedido Granja* 🥚\n\n` +
-    `Cliente: ${order.customerName}\n` +
+    `Cliente: ${order.customerCode ? `${order.customerCode} - ` : ""}${order.customerName}\n` +
     `Bairro: ${order.neighborhood}\n` +
     `Endereço: ${order.address}\n\n` +
     `${lines}\n\n` +
+    (adjustments ? `Subtotal: ${formatBRL(order.subtotal ?? order.total)}\n${adjustments}\n` : "") +
     `*Total: ${formatBRL(order.total)}*\n` +
     `Pagamento: ${order.paymentMethod} (${order.paymentStatus})\n\n` +
     `Obrigado pela preferência!`
