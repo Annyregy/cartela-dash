@@ -361,9 +361,25 @@ function SummaryContent({
         ))}
       </div>
 
-      <div className="border-t border-border pt-3 flex justify-between items-baseline">
-        <span className="text-muted-foreground text-sm uppercase tracking-wider">Total</span>
-        <span className="text-gold font-bold text-2xl tabular-nums">{formatBRL(total)}</span>
+      <div className="border-t border-border pt-3 space-y-3">
+        <div className="flex justify-between text-sm">
+          <span className="text-muted-foreground">Subtotal</span>
+          <span className="tabular-nums">{formatBRL(subtotal)}</span>
+        </div>
+        <AdjustmentsGrid
+          discountPercent={discountPercent}
+          setDiscountPercent={setDiscountPercent}
+          discountValue={discountValue}
+          setDiscountValue={setDiscountValue}
+          surchargePercent={surchargePercent}
+          setSurchargePercent={setSurchargePercent}
+          surchargeValue={surchargeValue}
+          setSurchargeValue={setSurchargeValue}
+        />
+        <div className="flex justify-between items-baseline border-t border-border pt-3">
+          <span className="text-muted-foreground text-sm uppercase tracking-wider">Total</span>
+          <span className="text-gold font-bold text-2xl tabular-nums">{formatBRL(total)}</span>
+        </div>
       </div>
 
       <div>
@@ -413,14 +429,24 @@ function SummaryContent({
         </div>
       </div>
 
-      <button
-        onClick={onConfirm}
-        disabled={!canConfirm}
-        className="w-full bg-gold text-gold-foreground font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98] transition shadow-lg"
-      >
-        <Send className="size-4" />
-        Confirmar e Enviar Pedido
-      </button>
+      <div className="grid grid-cols-1 gap-2">
+        <button
+          onClick={() => onConfirm(false)}
+          disabled={!canConfirm}
+          className="w-full bg-muted text-foreground border border-border font-bold py-3 rounded-xl flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98] transition"
+        >
+          <Save className="size-4" />
+          Só salvar no sistema
+        </button>
+        <button
+          onClick={() => onConfirm(true)}
+          disabled={!canConfirm}
+          className="w-full bg-gold text-gold-foreground font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98] transition shadow-lg"
+        >
+          <Send className="size-4" />
+          Salvar e enviar WhatsApp
+        </button>
+      </div>
       {!customer && (
         <div className="text-xs text-muted-foreground text-center">Selecione um cliente</div>
       )}
