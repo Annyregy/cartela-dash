@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Check, Minus, Plus, Search, Send, ShoppingCart, X } from "lucide-react";
+import { Check, Minus, Plus, Save, Search, Send, ShoppingCart, X } from "lucide-react";
 import {
   buildReceipt,
   formatBRL,
@@ -21,6 +21,10 @@ export function NewOrder() {
   const [payment, setPayment] = useState<PaymentMethod>("Pix");
   const [status, setStatus] = useState<PaymentStatus>("Pendente");
   const [cartOpen, setCartOpen] = useState(false);
+  const [discountPercent, setDiscountPercent] = useState("");
+  const [discountValue, setDiscountValue] = useState("");
+  const [surchargePercent, setSurchargePercent] = useState("");
+  const [surchargeValue, setSurchargeValue] = useState("");
 
   const filteredCustomers = useMemo(
     () =>
@@ -41,7 +45,15 @@ export function NewOrder() {
     [cart, products]
   );
 
-  const total = cartItems.reduce((s, i) => s + i.price * i.quantity, 0);
+  const subtotal = cartItems.reduce((s, i) => s + i.price * i.quantity, 0);
+  const parseAmount = (v: string) => Number(v.replace(",", ".")) || 0;
+  const discountPercentNumber = Math.max(0, parseAmount(discountPercent));
+  const discountValueNumber = Math.max(0, parseAmount(discountValue));
+  const surchargePercentNumber = Math.max(0, parseAmount(surchargePercent));
+  const surchargeValueNumber = Math.max(0, parseAmount(surchargeValue));
+  const discountTotal = subtotal * (discountPercentNumber / 100) + discountValueNumber;
+  const surchargeTotal = subtotal * (surchargePercentNumber / 100) + surchargeValueNumber;
+  const total = Math.max(0, subtotal - discountTotal + surchargeTotal);
   const itemCount = cartItems.reduce((s, i) => s + i.quantity, 0);
 
   const setQty = (id: string, delta: number) =>
@@ -55,25 +67,37 @@ export function NewOrder() {
     setCustomer(null);
     setStatus("Pendente");
     setPayment("Pix");
+    setDiscountPercent("");
+    setDiscountValue("");
+    setSurchargePercent("");
+    setSurchargeValue("");
     setCartOpen(false);
   };
 
-  const confirm = () => {
+  const confirm = (sendWhatsapp: boolean) => {
     if (!customer || cartItems.length === 0) return;
     const order = addOrder({
       customerId: customer.id,
+      customerCode: customer.code,
       customerName: customer.name,
       phone: customer.phone,
       address: customer.address,
       neighborhood: customer.neighborhood,
       items: cartItems,
+      subtotal,
+      discountPercent: discountPercentNumber,
+      discountValue: discountValueNumber,
+      surchargePercent: surchargePercentNumber,
+      surchargeValue: surchargeValueNumber,
       total,
       paymentMethod: payment,
       paymentStatus: status,
       deliveryStatus: "ativo",
     });
-    const url = whatsappLink(customer.phone, buildReceipt(order));
-    window.open(url, "_blank");
+    if (sendWhatsapp) {
+      const url = whatsappLink(customer.phone, buildReceipt(order));
+      window.open(url, "_blank", "noopener,noreferrer");
+    }
     reset();
   };
 
@@ -206,7 +230,16 @@ export function NewOrder() {
         <div className="sticky top-4 rounded-xl bg-surface border border-border p-5">
           <SummaryContent
             cartItems={cartItems}
+            subtotal={subtotal}
             total={total}
+            discountPercent={discountPercent}
+            setDiscountPercent={setDiscountPercent}
+            discountValue={discountValue}
+            setDiscountValue={setDiscountValue}
+            surchargePercent={surchargePercent}
+            setSurchargePercent={setSurchargePercent}
+            surchargeValue={surchargeValue}
+            setSurchargeValue={setSurchargeValue}
             payment={payment}
             setPayment={setPayment}
             status={status}
@@ -243,7 +276,16 @@ export function NewOrder() {
             <div className="mx-auto w-12 h-1.5 rounded-full bg-muted mb-4" />
             <SummaryContent
               cartItems={cartItems}
+              subtotal={subtotal}
               total={total}
+              discountPercent={discountPercent}
+              setDiscountPercent={setDiscountPercent}
+              discountValue={discountValue}
+              setDiscountValue={setDiscountValue}
+              surchargePercent={surchargePercent}
+              setSurchargePercent={setSurchargePercent}
+              surchargeValue={surchargeValue}
+              setSurchargeValue={setSurchargeValue}
               payment={payment}
               setPayment={setPayment}
               status={status}
