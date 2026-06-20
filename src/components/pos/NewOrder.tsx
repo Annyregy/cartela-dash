@@ -302,7 +302,16 @@ export function NewOrder() {
 
 function SummaryContent({
   cartItems,
+  subtotal,
   total,
+  discountPercent,
+  setDiscountPercent,
+  discountValue,
+  setDiscountValue,
+  surchargePercent,
+  setSurchargePercent,
+  surchargeValue,
+  setSurchargeValue,
   payment,
   setPayment,
   status,
@@ -311,13 +320,22 @@ function SummaryContent({
   onConfirm,
 }: {
   cartItems: CartItem[];
+  subtotal: number;
   total: number;
+  discountPercent: string;
+  setDiscountPercent: (v: string) => void;
+  discountValue: string;
+  setDiscountValue: (v: string) => void;
+  surchargePercent: string;
+  setSurchargePercent: (v: string) => void;
+  surchargeValue: string;
+  setSurchargeValue: (v: string) => void;
   payment: PaymentMethod;
   setPayment: (p: PaymentMethod) => void;
   status: PaymentStatus;
   setStatus: (s: PaymentStatus) => void;
   customer: Customer | null;
-  onConfirm: () => void;
+  onConfirm: (sendWhatsapp: boolean) => void;
 }) {
   const canConfirm = customer && cartItems.length > 0;
 
