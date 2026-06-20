@@ -1,5 +1,6 @@
 export type Customer = {
   id: string;
+  code: number;
   name: string;
   phone: string;
   address: string;
@@ -29,11 +30,17 @@ export type DeliveryStatus = "ativo" | "concluido";
 export type Order = {
   id: string;
   customerId: string;
+  customerCode?: number;
   customerName: string;
   phone: string;
   address: string;
   neighborhood: string;
   items: CartItem[];
+  subtotal?: number;
+  discountPercent?: number;
+  discountValue?: number;
+  surchargePercent?: number;
+  surchargeValue?: number;
   total: number;
   paymentMethod: PaymentMethod;
   paymentStatus: PaymentStatus;
