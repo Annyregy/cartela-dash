@@ -74,7 +74,7 @@ function load(): Persisted {
     orders: SEED_ORDERS,
     suppliers: INITIAL_SUPPLIERS,
     purchases: SEED_PURCHASES,
-    customers: INITIAL_CUSTOMERS,
+    customers: normalizeCustomers(INITIAL_CUSTOMERS),
   };
   if (typeof window === "undefined") return fallback;
   try {
@@ -236,12 +236,19 @@ export const buildReceipt = (order: Order) => {
   const lines = order.items
     .map((i) => `• ${i.quantity}x ${i.name} — ${formatBRL(i.price * i.quantity)}`)
     .join("\n");
+  const adjustments = [
+    order.discountPercent ? `Desconto %: ${order.discountPercent}%` : "",
+    order.discountValue ? `Desconto R$: ${formatBRL(order.discountValue)}` : "",
+    order.surchargePercent ? `Acréscimo %: ${order.surchargePercent}%` : "",
+    order.surchargeValue ? `Acréscimo R$: ${formatBRL(order.surchargeValue)}` : "",
+  ].filter(Boolean).join("\n");
   return (
     `*Pedido Granja* 🥚\n\n` +
-    `Cliente: ${order.customerName}\n` +
+    `Cliente: ${order.customerCode ? `${order.customerCode} - ` : ""}${order.customerName}\n` +
     `Bairro: ${order.neighborhood}\n` +
     `Endereço: ${order.address}\n\n` +
     `${lines}\n\n` +
+    (adjustments ? `Subtotal: ${formatBRL(order.subtotal ?? order.total)}\n${adjustments}\n` : "") +
     `*Total: ${formatBRL(order.total)}*\n` +
     `Pagamento: ${order.paymentMethod} (${order.paymentStatus})\n\n` +
     `Obrigado pela preferência!`
