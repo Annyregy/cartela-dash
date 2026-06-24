@@ -4,6 +4,7 @@ import { formatBRL, usePos, whatsappLink } from "@/lib/pos-store";
 import type { Customer, Order } from "@/lib/pos-data";
 import { NEIGHBORHOODS } from "@/lib/pos-data";
 import { cn } from "@/lib/utils";
+import { highlight } from "@/lib/highlight";
 
 type Draft = { code: string; name: string; phone: string; address: string; neighborhood: string };
 type SortMode = "name-asc" | "name-desc" | "pending-desc" | "pending-asc";
@@ -205,12 +206,12 @@ export function Customers() {
                 <div className="flex items-start justify-between gap-3 flex-wrap">
                   <div className="min-w-0 flex-1">
                     <div className="font-semibold truncate">
-                      <span className="text-gold tabular-nums">{c.code ?? "-"}</span> · {c.name}
+                      <span className="text-gold tabular-nums">{highlight(String(c.code ?? "-"), query)}</span> · {highlight(c.name, query)}
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {c.neighborhood}
-                      {c.address && c.address !== c.neighborhood ? ` · ${c.address}` : ""}
-                      {c.phone ? ` · ${c.phone}` : ""}
+                      {highlight(c.neighborhood, query)}
+                      {c.address && c.address !== c.neighborhood ? <> · {highlight(c.address, query)}</> : null}
+                      {c.phone ? <> · {highlight(c.phone, query)}</> : null}
                     </div>
                     {s && (
                       <div className="text-xs mt-1 flex flex-wrap gap-x-3 gap-y-1">

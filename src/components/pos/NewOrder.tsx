@@ -11,6 +11,7 @@ import {
   type PaymentStatus,
 } from "@/lib/pos-store";
 import { cn } from "@/lib/utils";
+import { highlight } from "@/lib/highlight";
 
 export function NewOrder() {
   const { customers, products, addOrder } = usePos();
@@ -191,11 +192,11 @@ export function NewOrder() {
                     className="w-full text-left px-4 py-3 hover:bg-muted active:bg-muted border-b border-border last:border-0"
                   >
                     <div className="text-foreground font-medium">
-                      <span className="text-gold tabular-nums">{c.code ?? "-"}</span> · {c.name}
+                      <span className="text-gold tabular-nums">{highlight(String(c.code ?? "-"), query)}</span> · {highlight(c.name, query)}
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {c.neighborhood}
-                      {c.phone ? ` • ${c.phone}` : ""}
+                      {highlight(c.neighborhood, query)}
+                      {c.phone ? <> • {highlight(c.phone, query)}</> : null}
                     </div>
                   </button>
                 ))}
