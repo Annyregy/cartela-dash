@@ -110,60 +110,99 @@ export function NewOrder() {
             Cliente
           </label>
           {customer ? (
-            <div className="mt-2 flex items-center justify-between">
-              <div>
-                <div className="text-foreground font-semibold">{customer.name}</div>
-                <div className="text-sm text-muted-foreground">
+            <div className="mt-2 flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <div className="text-foreground font-semibold truncate">
+                  <span className="text-gold tabular-nums">{customer.code ?? "-"}</span> · {customer.name}
+                </div>
+                <div className="text-sm text-muted-foreground truncate">
                   {customer.neighborhood} • {customer.address}
                 </div>
               </div>
               <button
                 onClick={() => setCustomer(null)}
-                className="p-2 rounded-md hover:bg-muted text-muted-foreground"
+                className="p-2 rounded-md hover:bg-muted text-muted-foreground shrink-0"
                 aria-label="Trocar cliente"
               >
                 <X className="size-4" />
               </button>
             </div>
           ) : (
-            <div className="mt-2 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-              <input
-                value={query}
-                onChange={(e) => {
-                  setQuery(e.target.value);
-                  setOpenCustomer(true);
-                }}
-                onFocus={() => setOpenCustomer(true)}
-                placeholder="Buscar cliente por código, nome ou bairro..."
-                className="w-full pl-9 pr-3 py-3 rounded-lg bg-input text-foreground placeholder:text-muted-foreground border border-border focus:outline-none focus:ring-2 focus:ring-gold"
-              />
-              {openCustomer && (
-                <div className="absolute z-20 mt-1 w-full rounded-lg bg-surface-elevated border border-border max-h-64 overflow-auto shadow-xl">
-                  {filteredCustomers.length === 0 && (
-                    <div className="p-3 text-sm text-muted-foreground">Nenhum cliente</div>
-                  )}
-                  {filteredCustomers.map((c) => (
-                    <button
-                      key={c.id}
-                      onClick={() => {
-                        setCustomer(c);
-                        setOpenCustomer(false);
-                        setQuery("");
-                      }}
-                      className="w-full text-left px-3 py-2.5 hover:bg-muted border-b border-border last:border-0"
-                    >
-                      <div className="text-foreground font-medium">
-                        <span className="text-gold tabular-nums">{c.code ?? "-"}</span> · {c.name}
-                      </div>
-                      <div className="text-xs text-muted-foreground">{c.neighborhood}</div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setQuery("");
+                setOpenCustomer(true);
+              }}
+              className="mt-2 w-full flex items-center gap-2 px-3 py-3 rounded-lg bg-input text-muted-foreground border border-border hover:border-gold/50 transition text-left"
+            >
+              <Search className="size-4" />
+              <span className="truncate">Buscar cliente por código, nome ou bairro...</span>
+            </button>
           )}
         </div>
+
+        {/* Customer picker overlay (works on mobile + desktop) */}
+        {openCustomer && (
+          <div
+            className="fixed inset-0 z-50 flex items-end md:items-center md:justify-center bg-black/60"
+            onClick={() => setOpenCustomer(false)}
+          >
+            <div
+              className="relative w-full md:max-w-lg md:rounded-2xl rounded-t-2xl bg-surface border border-border flex flex-col max-h-[90vh]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-4 border-b border-border">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-bold text-foreground">Selecionar cliente</h3>
+                  <button
+                    onClick={() => setOpenCustomer(false)}
+                    className="p-2 rounded-md hover:bg-muted text-muted-foreground"
+                    aria-label="Fechar"
+                  >
+                    <X className="size-4" />
+                  </button>
+                </div>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                  <input
+                    autoFocus
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Código, nome ou bairro..."
+                    className="w-full pl-9 pr-3 py-3 rounded-lg bg-input text-foreground placeholder:text-muted-foreground border border-border focus:outline-none focus:ring-2 focus:ring-gold"
+                  />
+                </div>
+              </div>
+              <div className="overflow-y-auto overscroll-contain flex-1">
+                {filteredCustomers.length === 0 && (
+                  <div className="p-4 text-sm text-muted-foreground text-center">
+                    Nenhum cliente encontrado
+                  </div>
+                )}
+                {filteredCustomers.map((c) => (
+                  <button
+                    key={c.id}
+                    onClick={() => {
+                      setCustomer(c);
+                      setOpenCustomer(false);
+                      setQuery("");
+                    }}
+                    className="w-full text-left px-4 py-3 hover:bg-muted active:bg-muted border-b border-border last:border-0"
+                  >
+                    <div className="text-foreground font-medium">
+                      <span className="text-gold tabular-nums">{c.code ?? "-"}</span> · {c.name}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {c.neighborhood}
+                      {c.phone ? ` • ${c.phone}` : ""}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Products */}
         <div>
