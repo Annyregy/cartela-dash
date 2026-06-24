@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, Minus, Plus, Save, Search, Send, ShoppingCart, X } from "lucide-react";
 import {
   buildReceipt,
@@ -26,6 +26,8 @@ export function NewOrder() {
   const [discountValue, setDiscountValue] = useState("");
   const [surchargePercent, setSurchargePercent] = useState("");
   const [surchargeValue, setSurchargeValue] = useState("");
+  const [highlightIdx, setHighlightIdx] = useState(0);
+  const listRef = useRef<HTMLDivElement | null>(null);
 
   const filteredCustomers = useMemo(
     () =>
@@ -34,6 +36,15 @@ export function NewOrder() {
       ),
     [customers, query]
   );
+
+  useEffect(() => {
+    setHighlightIdx(0);
+  }, [query, openCustomer]);
+
+  useEffect(() => {
+    const el = listRef.current?.querySelector<HTMLElement>(`[data-idx="${highlightIdx}"]`);
+    el?.scrollIntoView({ block: "nearest" });
+  }, [highlightIdx]);
 
   const cartItems: CartItem[] = useMemo(
     () =>
