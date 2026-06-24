@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, Minus, Plus, Save, Search, Send, ShoppingCart, X } from "lucide-react";
 import {
   buildReceipt,
@@ -26,6 +26,8 @@ export function NewOrder() {
   const [discountValue, setDiscountValue] = useState("");
   const [surchargePercent, setSurchargePercent] = useState("");
   const [surchargeValue, setSurchargeValue] = useState("");
+  const [highlightIdx, setHighlightIdx] = useState(0);
+  const listRef = useRef<HTMLDivElement | null>(null);
 
   const filteredCustomers = useMemo(
     () =>
@@ -34,6 +36,15 @@ export function NewOrder() {
       ),
     [customers, query]
   );
+
+  useEffect(() => {
+    setHighlightIdx(0);
+  }, [query, openCustomer]);
+
+  useEffect(() => {
+    const el = listRef.current?.querySelector<HTMLElement>(`[data-idx="${highlightIdx}"]`);
+    el?.scrollIntoView({ block: "nearest" });
+  }, [highlightIdx]);
 
   const cartItems: CartItem[] = useMemo(
     () =>
@@ -170,36 +181,93 @@ export function NewOrder() {
                     autoFocus
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "ArrowDown") {
+                        e.preventDefault();
+                        setHighlightIdx((i) =>
+                          filteredCustomers.length === 0 ? 0 : (i + 1) % filteredCustomers.length
+                        );
+                      } else if (e.key === "ArrowUp") {
+                        e.preventDefault();
+                        setHighlightIdx((i) =>
+                          filteredCustomers.length === 0
+                            ? 0
+                            : (i - 1 + filteredCustomers.length) % filteredCustomers.length
+                        );
+                      } else if (e.key === "Home") {
+                        e.preventDefault();
+                        setHighlightIdx(0);
+                      } else if (e.key === "End") {
+                        e.preventDefault();
+                        setHighlightIdx(Math.max(0, filteredCustomers.length - 1));
+                      } else if (e.key === "Enter") {
+                        e.preventDefault();
+                        const c = filteredCustomers[highlightIdx];
+                        if (c) {
+                          setCustomer(c);
+                          setOpenCustomer(false);
+                          setQuery("");
+                        }
+                      } else if (e.key === "Escape") {
+                        e.preventDefault();
+                        setOpenCustomer(false);
+                      }
+                    }}
                     placeholder="Código, nome ou bairro..."
+                    aria-activedescendant={
+                      filteredCustomers[highlightIdx]
+                        ? `customer-opt-${filteredCustomers[highlightIdx].id}`
+                        : undefined
+                    }
+                    aria-controls="customer-picker-list"
+                    role="combobox"
+                    aria-expanded
+                    aria-autocomplete="list"
                     className="w-full pl-9 pr-3 py-3 rounded-lg bg-input text-foreground placeholder:text-muted-foreground border border-border focus:outline-none focus:ring-2 focus:ring-gold"
                   />
                 </div>
               </div>
-              <div className="overflow-y-auto overscroll-contain flex-1">
+              <div
+                ref={listRef}
+                id="customer-picker-list"
+                role="listbox"
+                className="overflow-y-auto overscroll-contain flex-1"
+              >
                 {filteredCustomers.length === 0 && (
                   <div className="p-4 text-sm text-muted-foreground text-center">
                     Nenhum cliente encontrado
                   </div>
                 )}
-                {filteredCustomers.map((c) => (
-                  <button
-                    key={c.id}
-                    onClick={() => {
-                      setCustomer(c);
-                      setOpenCustomer(false);
-                      setQuery("");
-                    }}
-                    className="w-full text-left px-4 py-3 hover:bg-muted active:bg-muted border-b border-border last:border-0"
-                  >
-                    <div className="text-foreground font-medium">
-                      <span className="text-gold tabular-nums">{highlight(String(c.code ?? "-"), query)}</span> · {highlight(c.name, query)}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {highlight(c.neighborhood, query)}
-                      {c.phone ? <> • {highlight(c.phone, query)}</> : null}
-                    </div>
-                  </button>
-                ))}
+                {filteredCustomers.map((c, idx) => {
+                  const active = idx === highlightIdx;
+                  return (
+                    <button
+                      key={c.id}
+                      id={`customer-opt-${c.id}`}
+                      role="option"
+                      aria-selected={active}
+                      data-idx={idx}
+                      onMouseEnter={() => setHighlightIdx(idx)}
+                      onClick={() => {
+                        setCustomer(c);
+                        setOpenCustomer(false);
+                        setQuery("");
+                      }}
+                      className={cn(
+                        "w-full text-left px-4 py-3 border-b border-border last:border-0",
+                        active ? "bg-muted" : "hover:bg-muted active:bg-muted"
+                      )}
+                    >
+                      <div className="text-foreground font-medium">
+                        <span className="text-gold tabular-nums">{highlight(String(c.code ?? "-"), query)}</span> · {highlight(c.name, query)}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {highlight(c.neighborhood, query)}
+                        {c.phone ? <> • {highlight(c.phone, query)}</> : null}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
