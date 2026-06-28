@@ -265,11 +265,11 @@ export function NewOrder() {
                       )}
                     >
                       <div className="text-foreground font-medium">
-                        <span className="text-gold tabular-nums">{highlight(String(c.code ?? "-"), query)}</span> · {highlight(c.name, query)}
+                        <span className="text-gold tabular-nums">{highlight(String(c.code ?? "-"), debouncedQuery)}</span> · {highlight(c.name, debouncedQuery)}
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        {highlight(c.neighborhood, query)}
-                        {c.phone ? <> • {highlight(c.phone, query)}</> : null}
+                        {highlight(c.neighborhood, debouncedQuery)}
+                        {c.phone ? <> • {highlight(c.phone, debouncedQuery)}</> : null}
                       </div>
                     </button>
                   );
