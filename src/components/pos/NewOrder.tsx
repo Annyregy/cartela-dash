@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, Minus, Plus, Save, Search, Send, ShoppingCart, X } from "lucide-react";
+import { Check, Download, Minus, Plus, Save, Search, Send, ShoppingCart, X } from "lucide-react";
 import {
   buildReceipt,
   formatBRL,
@@ -29,13 +29,19 @@ export function NewOrder() {
   const [highlightIdx, setHighlightIdx] = useState(0);
   const listRef = useRef<HTMLDivElement | null>(null);
 
-  const filteredCustomers = useMemo(
-    () =>
-      customers.filter((c) =>
-        `${c.code ?? ""} ${c.name} ${c.neighborhood}`.toLowerCase().includes(query.toLowerCase())
-      ),
-    [customers, query]
-  );
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQuery(query), 120);
+    return () => clearTimeout(t);
+  }, [query]);
+
+  const filteredCustomers = useMemo(() => {
+    const q = debouncedQuery.trim().toLowerCase();
+    if (!q) return customers;
+    return customers.filter((c) =>
+      `${c.code ?? ""} ${c.name} ${c.neighborhood}`.toLowerCase().includes(q)
+    );
+  }, [customers, debouncedQuery]);
 
   useEffect(() => {
     setHighlightIdx(0);
