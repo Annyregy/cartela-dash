@@ -119,9 +119,61 @@ export function NewOrder() {
     reset();
   };
 
+  // Enter (globally) confirms the order — except inside the customer picker
+  // or when typing into a multi-line field.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Enter" || e.shiftKey || e.isComposing) return;
+      if (openCustomer) return;
+      const tag = (e.target as HTMLElement | null)?.tagName;
+      if (tag === "TEXTAREA") return;
+      if (!customer || cartItems.length === 0) return;
+      e.preventDefault();
+      confirm(true);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+
+  // PWA install prompt
+  const [installEvt, setInstallEvt] = useState<any>(null);
+  useEffect(() => {
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setInstallEvt(e);
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+  const isStandalone =
+    typeof window !== "undefined" &&
+    (window.matchMedia?.("(display-mode: standalone)").matches ||
+      // @ts-expect-error iOS
+      window.navigator.standalone === true);
+  const installApp = async () => {
+    if (!installEvt) {
+      alert(
+        "Para instalar no celular:\n\n• Android (Chrome): toque no menu ⋮ e escolha 'Instalar app' ou 'Adicionar à tela inicial'.\n• iPhone (Safari): toque em Compartilhar ⬆️ e depois 'Adicionar à Tela de Início'."
+      );
+      return;
+    }
+    installEvt.prompt();
+    await installEvt.userChoice;
+    setInstallEvt(null);
+  };
+
   return (
     <div className="pb-32 md:pb-8 md:grid md:grid-cols-[1fr_380px] md:gap-6">
       <div className="space-y-5">
+        {!isStandalone && (
+          <button
+            onClick={installApp}
+            className="w-full flex items-center justify-center gap-2 rounded-xl border border-gold/40 bg-gold/10 text-gold py-2.5 text-sm font-semibold hover:bg-gold/20 transition"
+          >
+            <Download className="size-4" />
+            Instalar app no celular
+          </button>
+        )}
         {/* Customer */}
         <div className="rounded-xl bg-surface border border-border p-4">
           <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
