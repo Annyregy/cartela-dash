@@ -71,7 +71,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
+      { name: "theme-color", content: "#0A192F" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+      { name: "apple-mobile-web-app-title", content: "Granja POS" },
+      { name: "mobile-web-app-capable", content: "yes" },
       { title: "Lovable App" },
       { name: "description", content: "Egg Route is a mobile-first web application for internal sales and delivery management." },
       { name: "author", content: "Lovable" },
@@ -86,10 +91,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/80703696-2be3-4640-836e-f910a400028e/id-preview-0337b070--2f36f258-f73e-4fdc-be86-951aa5c41466.lovable.app-1779229215761.png" },
     ],
     links: [
-      {
-        rel: "stylesheet",
-        href: appCss,
-      },
+      { rel: "stylesheet", href: appCss },
+      { rel: "manifest", href: "/manifest.webmanifest" },
+      { rel: "icon", href: "/icon-192.png", type: "image/png", sizes: "192x192" },
+      { rel: "icon", href: "/icon-512.png", type: "image/png", sizes: "512x512" },
+      { rel: "apple-touch-icon", href: "/icon-192.png", sizes: "192x192" },
     ],
   }),
   shellComponent: RootShell,

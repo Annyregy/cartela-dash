@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, Minus, Plus, Save, Search, Send, ShoppingCart, X } from "lucide-react";
+import { Check, Download, Minus, Plus, Save, Search, Send, ShoppingCart, X } from "lucide-react";
 import {
   buildReceipt,
   formatBRL,
@@ -29,13 +29,19 @@ export function NewOrder() {
   const [highlightIdx, setHighlightIdx] = useState(0);
   const listRef = useRef<HTMLDivElement | null>(null);
 
-  const filteredCustomers = useMemo(
-    () =>
-      customers.filter((c) =>
-        `${c.code ?? ""} ${c.name} ${c.neighborhood}`.toLowerCase().includes(query.toLowerCase())
-      ),
-    [customers, query]
-  );
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQuery(query), 120);
+    return () => clearTimeout(t);
+  }, [query]);
+
+  const filteredCustomers = useMemo(() => {
+    const q = debouncedQuery.trim().toLowerCase();
+    if (!q) return customers;
+    return customers.filter((c) =>
+      `${c.code ?? ""} ${c.name} ${c.neighborhood}`.toLowerCase().includes(q)
+    );
+  }, [customers, debouncedQuery]);
 
   useEffect(() => {
     setHighlightIdx(0);
@@ -113,9 +119,61 @@ export function NewOrder() {
     reset();
   };
 
+  // Enter (globally) confirms the order — except inside the customer picker
+  // or when typing into a multi-line field.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Enter" || e.shiftKey || e.isComposing) return;
+      if (openCustomer) return;
+      const tag = (e.target as HTMLElement | null)?.tagName;
+      if (tag === "TEXTAREA") return;
+      if (!customer || cartItems.length === 0) return;
+      e.preventDefault();
+      confirm(true);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+
+  // PWA install prompt
+  const [installEvt, setInstallEvt] = useState<any>(null);
+  useEffect(() => {
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setInstallEvt(e);
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+  const isStandalone =
+    typeof window !== "undefined" &&
+    (window.matchMedia?.("(display-mode: standalone)").matches ||
+      // @ts-expect-error iOS
+      window.navigator.standalone === true);
+  const installApp = async () => {
+    if (!installEvt) {
+      alert(
+        "Para instalar no celular:\n\n• Android (Chrome): toque no menu ⋮ e escolha 'Instalar app' ou 'Adicionar à tela inicial'.\n• iPhone (Safari): toque em Compartilhar ⬆️ e depois 'Adicionar à Tela de Início'."
+      );
+      return;
+    }
+    installEvt.prompt();
+    await installEvt.userChoice;
+    setInstallEvt(null);
+  };
+
   return (
     <div className="pb-32 md:pb-8 md:grid md:grid-cols-[1fr_380px] md:gap-6">
       <div className="space-y-5">
+        {!isStandalone && (
+          <button
+            onClick={installApp}
+            className="w-full flex items-center justify-center gap-2 rounded-xl border border-gold/40 bg-gold/10 text-gold py-2.5 text-sm font-semibold hover:bg-gold/20 transition"
+          >
+            <Download className="size-4" />
+            Instalar app no celular
+          </button>
+        )}
         {/* Customer */}
         <div className="rounded-xl bg-surface border border-border p-4">
           <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
@@ -259,11 +317,11 @@ export function NewOrder() {
                       )}
                     >
                       <div className="text-foreground font-medium">
-                        <span className="text-gold tabular-nums">{highlight(String(c.code ?? "-"), query)}</span> · {highlight(c.name, query)}
+                        <span className="text-gold tabular-nums">{highlight(String(c.code ?? "-"), debouncedQuery)}</span> · {highlight(c.name, debouncedQuery)}
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        {highlight(c.neighborhood, query)}
-                        {c.phone ? <> • {highlight(c.phone, query)}</> : null}
+                        {highlight(c.neighborhood, debouncedQuery)}
+                        {c.phone ? <> • {highlight(c.phone, debouncedQuery)}</> : null}
                       </div>
                     </button>
                   );
