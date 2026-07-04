@@ -92,32 +92,47 @@ export function NewOrder() {
     setCartOpen(false);
   };
 
+  const [submitting, setSubmitting] = useState(false);
   const confirm = (sendWhatsapp: boolean) => {
+    if (submitting) return;
     if (!customer || cartItems.length === 0) return;
-    const order = addOrder({
-      customerId: customer.id,
-      customerCode: customer.code,
-      customerName: customer.name,
-      phone: customer.phone,
-      address: customer.address,
-      neighborhood: customer.neighborhood,
-      items: cartItems,
-      subtotal,
-      discountPercent: discountPercentNumber,
-      discountValue: discountValueNumber,
-      surchargePercent: surchargePercentNumber,
-      surchargeValue: surchargeValueNumber,
-      total,
-      paymentMethod: payment,
-      paymentStatus: status,
-      deliveryStatus: "ativo",
-    });
-    if (sendWhatsapp) {
-      const url = whatsappLink(customer.phone, buildReceipt(order));
-      window.open(url, "_blank", "noopener,noreferrer");
+    setSubmitting(true);
+    try {
+      const order = addOrder({
+        customerId: customer.id,
+        customerCode: customer.code,
+        customerName: customer.name,
+        phone: customer.phone,
+        address: customer.address,
+        neighborhood: customer.neighborhood,
+        items: cartItems,
+        subtotal,
+        discountPercent: discountPercentNumber,
+        discountValue: discountValueNumber,
+        surchargePercent: surchargePercentNumber,
+        surchargeValue: surchargeValueNumber,
+        total,
+        paymentMethod: payment,
+        paymentStatus: status,
+        deliveryStatus: "ativo",
+      });
+      if (sendWhatsapp) {
+        const url = whatsappLink(customer.phone, buildReceipt(order));
+        // Anchor click works reliably on mobile browsers and installed PWAs
+        const a = document.createElement("a");
+        a.href = url;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
+      reset();
+    } finally {
+      setTimeout(() => setSubmitting(false), 300);
     }
-    reset();
   };
+
 
   // Enter (globally) confirms the order — except inside the customer picker
   // or when typing into a multi-line field.
