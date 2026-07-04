@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
-import { Calendar, CheckCircle2, DollarSign, MessageCircle, Search, TrendingUp, Wallet } from "lucide-react";
-import { buildReceipt, formatBRL, usePos, whatsappLink, type Order } from "@/lib/pos-store";
+import { Calendar, CheckCircle2, DollarSign, MessageCircle, Minus, Pencil, Plus, Search, Trash2, TrendingUp, Wallet } from "lucide-react";
+import { buildReceipt, formatBRL, usePos, whatsappLink, type CartItem, type Order, type PaymentMethod, type PaymentStatus } from "@/lib/pos-store";
 import { cn } from "@/lib/utils";
 
 type Period = "dia" | "semana" | "mes" | "ano" | "tudo";
