@@ -166,16 +166,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
     });
   };
 
-    const order: Order = { ...o, id: `o_${Date.now()}`, createdAt: new Date().toISOString() };
-    setProducts((prev) =>
-      prev.map((p) => {
-        const item = o.items.find((i) => i.productId === p.id);
-        return item ? { ...p, stock: Math.max(0, p.stock - item.quantity) } : p;
-      })
-    );
-    setOrders((prev) => [order, ...prev]);
-    return order;
-  };
+
 
   const completeDelivery: State["completeDelivery"] = (id) =>
     setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, deliveryStatus: "concluido" } : o)));
