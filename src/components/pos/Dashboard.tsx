@@ -172,7 +172,13 @@ export function Dashboard() {
               </div>
             )}
             {filtered.map((o) => (
-              <OrderRow key={o.id} order={o} onTogglePaid={() => (o.paymentStatus === "Pago" ? markUnpaid(o.id) : markPaid(o.id))} />
+              <OrderRow
+                key={o.id}
+                order={o}
+                onTogglePaid={() => (o.paymentStatus === "Pago" ? markUnpaid(o.id) : markPaid(o.id))}
+                onSave={(patch) => updateOrder(o.id, patch)}
+                onDelete={() => deleteOrder(o.id)}
+              />
             ))}
           </div>
         </>
