@@ -22,6 +22,8 @@ type State = {
   suppliers: Supplier[];
   purchases: Purchase[];
   addOrder: (o: Omit<Order, "id" | "createdAt">) => Order;
+  updateOrder: (id: string, patch: Partial<Omit<Order, "id" | "createdAt" | "customerId">>) => void;
+  deleteOrder: (id: string) => void;
   completeDelivery: (id: string) => void;
   markPaid: (id: string) => void;
   markUnpaid: (id: string) => void;
