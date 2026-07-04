@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
-import { Calendar, CheckCircle2, DollarSign, MessageCircle, Search, TrendingUp, Wallet } from "lucide-react";
-import { buildReceipt, formatBRL, usePos, whatsappLink, type Order } from "@/lib/pos-store";
+import { Calendar, CheckCircle2, DollarSign, MessageCircle, Minus, Pencil, Plus, Search, Trash2, TrendingUp, Wallet } from "lucide-react";
+import { buildReceipt, formatBRL, usePos, whatsappLink, type CartItem, type Order, type PaymentMethod, type PaymentStatus } from "@/lib/pos-store";
 import { cn } from "@/lib/utils";
 
 type Period = "dia" | "semana" | "mes" | "ano" | "tudo";
@@ -34,7 +34,7 @@ function startOf(period: Period): number {
 }
 
 export function Dashboard() {
-  const { orders, customers, markPaid, markUnpaid } = usePos();
+  const { orders, customers, markPaid, markUnpaid, updateOrder, deleteOrder } = usePos();
   const [period, setPeriod] = useState<Period>("mes");
   const [customerId, setCustomerId] = useState<string>("todos");
   const [view, setView] = useState<"compras" | "devendo">("compras");
@@ -172,7 +172,13 @@ export function Dashboard() {
               </div>
             )}
             {filtered.map((o) => (
-              <OrderRow key={o.id} order={o} onTogglePaid={() => (o.paymentStatus === "Pago" ? markUnpaid(o.id) : markPaid(o.id))} />
+              <OrderRow
+                key={o.id}
+                order={o}
+                onTogglePaid={() => (o.paymentStatus === "Pago" ? markUnpaid(o.id) : markPaid(o.id))}
+                onSave={(patch) => updateOrder(o.id, patch)}
+                onDelete={() => deleteOrder(o.id)}
+              />
             ))}
           </div>
         </>
@@ -262,10 +268,22 @@ function StatCard({
   );
 }
 
-function OrderRow({ order, onTogglePaid }: { order: Order; onTogglePaid: () => void }) {
+function OrderRow({
+  order,
+  onTogglePaid,
+  onSave,
+  onDelete,
+}: {
+  order: Order;
+  onTogglePaid: () => void;
+  onSave: (patch: Partial<Omit<Order, "id" | "createdAt" | "customerId">>) => void;
+  onDelete: () => void;
+}) {
   const isPaid = order.paymentStatus === "Pago";
   const date = new Date(order.createdAt);
   const summary = order.items.map((i) => `${i.quantity}x ${i.name}`).join(", ");
+  const [editing, setEditing] = useState(false);
+  const [confirmDel, setConfirmDel] = useState(false);
 
   return (
     <div className="rounded-xl bg-surface border border-border p-4 space-y-2">
@@ -289,13 +307,298 @@ function OrderRow({ order, onTogglePaid }: { order: Order; onTogglePaid: () => v
         </button>
       </div>
       <div className="text-sm text-foreground/80 truncate">{summary}</div>
-      <div className="flex items-baseline justify-between border-t border-border pt-2">
-        <span className="text-xs uppercase tracking-wider text-muted-foreground">Total</span>
+      <div className="flex items-center justify-between border-t border-border pt-2 gap-2">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setEditing(true)}
+            className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-md bg-muted text-foreground hover:bg-muted/70 transition"
+          >
+            <Pencil className="size-3.5" />
+            Editar
+          </button>
+          <button
+            onClick={() => setConfirmDel(true)}
+            className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-md bg-destructive/15 text-destructive hover:bg-destructive/25 transition"
+          >
+            <Trash2 className="size-3.5" />
+            Excluir
+          </button>
+        </div>
         <span className="text-gold font-bold text-lg tabular-nums">{formatBRL(order.total)}</span>
+      </div>
+
+      {editing && (
+        <EditOrderModal
+          order={order}
+          onClose={() => setEditing(false)}
+          onSave={(patch) => {
+            onSave(patch);
+            setEditing(false);
+          }}
+        />
+      )}
+
+      {confirmDel && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          onClick={() => setConfirmDel(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl bg-surface border border-border p-5 space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div>
+              <div className="font-bold text-foreground">Excluir pedido?</div>
+              <div className="text-sm text-muted-foreground mt-1">
+                O estoque dos itens será restaurado. Esta ação não pode ser desfeita.
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setConfirmDel(false)}
+                className="py-2.5 rounded-lg bg-muted text-foreground font-medium"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  setConfirmDel(false);
+                  onDelete();
+                }}
+                className="py-2.5 rounded-lg bg-destructive text-destructive-foreground font-semibold"
+              >
+                Excluir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EditOrderModal({
+  order,
+  onClose,
+  onSave,
+}: {
+  order: Order;
+  onClose: () => void;
+  onSave: (patch: Partial<Omit<Order, "id" | "createdAt" | "customerId">>) => void;
+}) {
+  const [items, setItems] = useState<CartItem[]>(order.items.map((i) => ({ ...i })));
+  const [payment, setPayment] = useState<PaymentMethod>(order.paymentMethod);
+  const [status, setStatus] = useState<PaymentStatus>(order.paymentStatus);
+  const [discountPercent, setDiscountPercent] = useState(String(order.discountPercent ?? ""));
+  const [discountValue, setDiscountValue] = useState(String(order.discountValue ?? ""));
+  const [surchargePercent, setSurchargePercent] = useState(String(order.surchargePercent ?? ""));
+  const [surchargeValue, setSurchargeValue] = useState(String(order.surchargeValue ?? ""));
+
+  const parseAmount = (v: string) => Number(v.replace(",", ".")) || 0;
+  const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0);
+  const dP = Math.max(0, parseAmount(discountPercent));
+  const dV = Math.max(0, parseAmount(discountValue));
+  const sP = Math.max(0, parseAmount(surchargePercent));
+  const sV = Math.max(0, parseAmount(surchargeValue));
+  const total = Math.max(0, subtotal - (subtotal * dP) / 100 - dV + (subtotal * sP) / 100 + sV);
+
+  const setQty = (id: string, delta: number) =>
+    setItems((prev) =>
+      prev.map((i) =>
+        i.productId === id ? { ...i, quantity: Math.max(0, i.quantity + delta) } : i
+      )
+    );
+
+  const save = () => {
+    const cleaned = items.filter((i) => i.quantity > 0);
+    onSave({
+      items: cleaned,
+      subtotal,
+      discountPercent: dP,
+      discountValue: dV,
+      surchargePercent: sP,
+      surchargeValue: sV,
+      total,
+      paymentMethod: payment,
+      paymentStatus: status,
+    });
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end md:items-center md:justify-center bg-black/60"
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full md:max-w-lg md:rounded-2xl rounded-t-2xl bg-surface border border-border flex flex-col max-h-[92vh]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="p-4 border-b border-border flex items-center justify-between">
+          <div>
+            <div className="font-bold text-foreground">Editar pedido</div>
+            <div className="text-xs text-muted-foreground">{order.customerName}</div>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-sm text-muted-foreground hover:text-foreground px-2 py-1"
+          >
+            Fechar
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div className="space-y-2">
+            <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
+              Itens
+            </div>
+            {items.map((i) => (
+              <div
+                key={i.productId}
+                className="flex items-center justify-between gap-2 rounded-lg border border-border p-2"
+              >
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold text-foreground truncate">{i.name}</div>
+                  <div className="text-xs text-muted-foreground">{formatBRL(i.price)}</div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setQty(i.productId, -1)}
+                    className="size-8 rounded-md bg-muted flex items-center justify-center"
+                    aria-label="Diminuir"
+                  >
+                    <Minus className="size-3.5" />
+                  </button>
+                  <span className="w-6 text-center tabular-nums">{i.quantity}</span>
+                  <button
+                    onClick={() => setQty(i.productId, 1)}
+                    className="size-8 rounded-md bg-gold text-gold-foreground flex items-center justify-center"
+                    aria-label="Aumentar"
+                  >
+                    <Plus className="size-3.5" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <label className="text-xs text-muted-foreground">
+              Desc. %
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={discountPercent}
+                onChange={(e) => setDiscountPercent(e.target.value)}
+                className="mt-1 w-full bg-input border border-border rounded-md px-2 py-2 text-sm"
+              />
+            </label>
+            <label className="text-xs text-muted-foreground">
+              Desc. R$
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={discountValue}
+                onChange={(e) => setDiscountValue(e.target.value)}
+                className="mt-1 w-full bg-input border border-border rounded-md px-2 py-2 text-sm"
+              />
+            </label>
+            <label className="text-xs text-muted-foreground">
+              Acrésc. %
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={surchargePercent}
+                onChange={(e) => setSurchargePercent(e.target.value)}
+                className="mt-1 w-full bg-input border border-border rounded-md px-2 py-2 text-sm"
+              />
+            </label>
+            <label className="text-xs text-muted-foreground">
+              Acrésc. R$
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={surchargeValue}
+                onChange={(e) => setSurchargeValue(e.target.value)}
+                className="mt-1 w-full bg-input border border-border rounded-md px-2 py-2 text-sm"
+              />
+            </label>
+          </div>
+
+          <div>
+            <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-2">
+              Pagamento
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {(["Pix", "Dinheiro", "Cartão"] as PaymentMethod[]).map((m) => (
+                <button
+                  key={m}
+                  onClick={() => setPayment(m)}
+                  className={cn(
+                    "py-2 rounded-lg text-sm font-medium border transition",
+                    payment === m
+                      ? "bg-gold text-gold-foreground border-gold"
+                      : "bg-muted text-foreground border-border"
+                  )}
+                >
+                  {m}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-2">
+              Status
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {(["Pendente", "Pago"] as PaymentStatus[]).map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setStatus(s)}
+                  className={cn(
+                    "py-2 rounded-lg text-sm font-medium border transition",
+                    status === s
+                      ? s === "Pago"
+                        ? "bg-success text-success-foreground border-success"
+                        : "bg-warning text-warning-foreground border-warning"
+                      : "bg-muted text-foreground border-border"
+                  )}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex justify-between items-baseline border-t border-border pt-3">
+            <span className="text-muted-foreground text-sm uppercase tracking-wider">Total</span>
+            <span className="text-gold font-bold text-2xl tabular-nums">{formatBRL(total)}</span>
+          </div>
+        </div>
+
+        <div className="p-4 border-t border-border grid grid-cols-2 gap-2">
+          <button
+            onClick={onClose}
+            className="py-2.5 rounded-lg bg-muted text-foreground font-medium"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={save}
+            className="py-2.5 rounded-lg bg-gold text-gold-foreground font-bold"
+          >
+            Salvar alterações
+          </button>
+        </div>
       </div>
     </div>
   );
 }
+
 
 function DebtorCard({
   name,
