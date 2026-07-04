@@ -131,6 +131,52 @@ export function PosProvider({ children }: { children: ReactNode }) {
     return order;
   };
 
+  const updateOrder: State["updateOrder"] = (id, patch) => {
+    setOrders((prev) => {
+      const current = prev.find((o) => o.id === id);
+      if (!current) return prev;
+      const nextItems = patch.items ?? current.items;
+      // stock diff: return old items, deduct new items
+      if (patch.items) {
+        setProducts((prods) =>
+          prods.map((p) => {
+            const oldQty = current.items.find((i) => i.productId === p.id)?.quantity ?? 0;
+            const newQty = nextItems.find((i) => i.productId === p.id)?.quantity ?? 0;
+            const delta = oldQty - newQty; // positive => restore stock
+            return delta !== 0 ? { ...p, stock: Math.max(0, p.stock + delta) } : p;
+          })
+        );
+      }
+      return prev.map((o) => (o.id === id ? { ...o, ...patch, items: nextItems } : o));
+    });
+  };
+
+  const deleteOrder: State["deleteOrder"] = (id) => {
+    setOrders((prev) => {
+      const target = prev.find((o) => o.id === id);
+      if (target) {
+        setProducts((prods) =>
+          prods.map((p) => {
+            const item = target.items.find((i) => i.productId === p.id);
+            return item ? { ...p, stock: p.stock + item.quantity } : p;
+          })
+        );
+      }
+      return prev.filter((o) => o.id !== id);
+    });
+  };
+
+    const order: Order = { ...o, id: `o_${Date.now()}`, createdAt: new Date().toISOString() };
+    setProducts((prev) =>
+      prev.map((p) => {
+        const item = o.items.find((i) => i.productId === p.id);
+        return item ? { ...p, stock: Math.max(0, p.stock - item.quantity) } : p;
+      })
+    );
+    setOrders((prev) => [order, ...prev]);
+    return order;
+  };
+
   const completeDelivery: State["completeDelivery"] = (id) =>
     setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, deliveryStatus: "concluido" } : o)));
 
