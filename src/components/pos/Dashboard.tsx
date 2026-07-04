@@ -616,7 +616,19 @@ function DebtorCard({
   onMarkOrderPaid: (id: string) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const waMsg = `Olá ${name}, passando para lembrar do pagamento pendente no valor de ${formatBRL(total)}. Obrigado!`;
+  const orderLines = orders
+    .map((o) => {
+      const items = o.items.map((i) => `${i.quantity}x ${i.name}`).join(", ");
+      const date = new Date(o.createdAt).toLocaleDateString("pt-BR");
+      return `• ${date} — ${items} — ${formatBRL(o.total)}`;
+    })
+    .join("\n");
+  const waMsg =
+    `Olá ${name}, tudo bem? 🐣\n\n` +
+    `Segue o resumo dos pedidos em aberto:\n\n` +
+    `${orderLines}\n\n` +
+    `*Total pendente: ${formatBRL(total)}*\n\n` +
+    `Quando puder acertar, ficaremos muito gratos. Obrigado! 🙏`;
 
   return (
     <div className="rounded-xl bg-surface border border-border overflow-hidden">
