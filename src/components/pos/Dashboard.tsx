@@ -34,7 +34,7 @@ function startOf(period: Period): number {
 }
 
 export function Dashboard() {
-  const { orders, customers, markPaid, markUnpaid } = usePos();
+  const { orders, customers, markPaid, markUnpaid, updateOrder, deleteOrder } = usePos();
   const [period, setPeriod] = useState<Period>("mes");
   const [customerId, setCustomerId] = useState<string>("todos");
   const [view, setView] = useState<"compras" | "devendo">("compras");
