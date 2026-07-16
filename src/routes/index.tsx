@@ -20,6 +20,7 @@ import { Products } from "@/components/pos/Products";
 import { Suppliers } from "@/components/pos/Suppliers";
 import { Customers } from "@/components/pos/Customers";
 import { cn } from "@/lib/utils";
+import { TabErrorBoundary } from "@/components/TabErrorBoundary";
 
 export const Route = createFileRoute("/")({
   head: () => ({
