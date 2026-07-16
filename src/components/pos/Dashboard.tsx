@@ -2,6 +2,16 @@ import { useMemo, useState } from "react";
 import { Calendar, CheckCircle2, DollarSign, MessageCircle, Minus, Pencil, Plus, Search, Trash2, TrendingUp, Wallet } from "lucide-react";
 import { buildReceipt, formatBRL, usePos, whatsappLink, type CartItem, type Order, type PaymentMethod, type PaymentStatus } from "@/lib/pos-store";
 import { cn } from "@/lib/utils";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type Period = "dia" | "semana" | "mes" | "ano" | "tudo";
 
@@ -616,6 +626,7 @@ function DebtorCard({
   onMarkOrderPaid: (id: string) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [confirmSend, setConfirmSend] = useState(false);
   const orderLines = orders
     .map((o) => {
       const items = o.items.map((i) => `${i.quantity}x ${i.name}`).join(", ");
@@ -673,15 +684,14 @@ function DebtorCard({
 
           <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border">
             {phone && (
-              <a
-                href={whatsappLink(phone, waMsg)}
-                target="_blank"
-                rel="noreferrer"
+              <button
+                type="button"
+                onClick={() => setConfirmSend(true)}
                 className="flex items-center justify-center gap-2 py-2.5 rounded-lg bg-muted text-foreground font-medium border border-border hover:border-gold/50 transition text-sm"
               >
                 <MessageCircle className="size-4" />
                 Cobrar
-              </a>
+              </button>
             )}
             <button
               onClick={onMarkAllPaid}
@@ -696,6 +706,34 @@ function DebtorCard({
           </div>
         </div>
       )}
+
+      <AlertDialog open={confirmSend} onOpenChange={setConfirmSend}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Enviar cobrança pelo WhatsApp?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você vai enviar para <strong>{name}</strong> o resumo de{" "}
+              {orders.length} {orders.length === 1 ? "pedido pendente" : "pedidos pendentes"} no total de{" "}
+              <strong>{formatBRL(total)}</strong>. Deseja continuar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const a = document.createElement("a");
+                a.href = whatsappLink(phone, waMsg);
+                a.target = "_blank";
+                a.rel = "noreferrer";
+                a.click();
+                setConfirmSend(false);
+              }}
+            >
+              Enviar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
