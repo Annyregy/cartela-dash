@@ -626,6 +626,7 @@ function DebtorCard({
   onMarkOrderPaid: (id: string) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [confirmSend, setConfirmSend] = useState(false);
   const orderLines = orders
     .map((o) => {
       const items = o.items.map((i) => `${i.quantity}x ${i.name}`).join(", ");
