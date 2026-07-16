@@ -2,6 +2,16 @@ import { useMemo, useState } from "react";
 import { Calendar, CheckCircle2, DollarSign, MessageCircle, Minus, Pencil, Plus, Search, Trash2, TrendingUp, Wallet } from "lucide-react";
 import { buildReceipt, formatBRL, usePos, whatsappLink, type CartItem, type Order, type PaymentMethod, type PaymentStatus } from "@/lib/pos-store";
 import { cn } from "@/lib/utils";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type Period = "dia" | "semana" | "mes" | "ano" | "tudo";
 
