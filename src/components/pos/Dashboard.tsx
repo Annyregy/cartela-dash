@@ -706,6 +706,34 @@ function DebtorCard({
           </div>
         </div>
       )}
+
+      <AlertDialog open={confirmSend} onOpenChange={setConfirmSend}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Enviar cobrança pelo WhatsApp?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você vai enviar para <strong>{name}</strong> o resumo de{" "}
+              {orders.length} {orders.length === 1 ? "pedido pendente" : "pedidos pendentes"} no total de{" "}
+              <strong>{formatBRL(total)}</strong>. Deseja continuar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const a = document.createElement("a");
+                a.href = whatsappLink(phone, waMsg);
+                a.target = "_blank";
+                a.rel = "noreferrer";
+                a.click();
+                setConfirmSend(false);
+              }}
+            >
+              Enviar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
