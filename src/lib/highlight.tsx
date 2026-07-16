@@ -16,12 +16,12 @@ export function highlight(text: unknown, query: string): ReactNode {
   if (!q) return safe;
 
   const tokens = Array.from(new Set(q.split(/\s+/).filter(Boolean).map(escapeRegExp)));
-  if (tokens.length === 0) return text;
+  if (tokens.length === 0) return safe;
 
   const norm = (s: string) =>
     s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
-  const normText = norm(text);
+  const normText = norm(safe);
   const re = new RegExp(`(${tokens.map((t) => norm(t)).join("|")})`, "gi");
 
   const ranges: Array<[number, number]> = [];
@@ -33,7 +33,7 @@ export function highlight(text: unknown, query: string): ReactNode {
     }
     ranges.push([m.index, m.index + m[0].length]);
   }
-  if (ranges.length === 0) return text;
+  if (ranges.length === 0) return safe;
 
   // Merge overlapping
   ranges.sort((a, b) => a[0] - b[0]);
@@ -47,17 +47,17 @@ export function highlight(text: unknown, query: string): ReactNode {
   const parts: ReactNode[] = [];
   let cursor = 0;
   merged.forEach(([s, e], idx) => {
-    if (s > cursor) parts.push(<Fragment key={`t-${idx}`}>{text.slice(cursor, s)}</Fragment>);
+    if (s > cursor) parts.push(<Fragment key={`t-${idx}`}>{safe.slice(cursor, s)}</Fragment>);
     parts.push(
       <mark
         key={`m-${idx}`}
         className="bg-gold/30 text-foreground rounded px-0.5"
       >
-        {text.slice(s, e)}
+        {safe.slice(s, e)}
       </mark>
     );
     cursor = e;
   });
-  if (cursor < text.length) parts.push(<Fragment key="t-end">{text.slice(cursor)}</Fragment>);
+  if (cursor < safe.length) parts.push(<Fragment key="t-end">{safe.slice(cursor)}</Fragment>);
   return <>{parts}</>;
 }
