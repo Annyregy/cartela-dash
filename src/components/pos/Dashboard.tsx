@@ -684,15 +684,14 @@ function DebtorCard({
 
           <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border">
             {phone && (
-              <a
-                href={whatsappLink(phone, waMsg)}
-                target="_blank"
-                rel="noreferrer"
+              <button
+                type="button"
+                onClick={() => setConfirmSend(true)}
                 className="flex items-center justify-center gap-2 py-2.5 rounded-lg bg-muted text-foreground font-medium border border-border hover:border-gold/50 transition text-sm"
               >
                 <MessageCircle className="size-4" />
                 Cobrar
-              </a>
+              </button>
             )}
             <button
               onClick={onMarkAllPaid}
