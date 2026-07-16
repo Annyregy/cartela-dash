@@ -56,14 +56,25 @@ const numberFromId = (id: string, fallback: number) => {
   return Number.isFinite(n) && n > 0 ? n : fallback;
 };
 
+const toStr = (v: unknown) => (v == null ? "" : typeof v === "string" ? v : String(v));
+
 const normalizeCustomers = (list: Customer[]) => {
   const used = new Set<number>();
-  return list.map((c, index) => {
+  return (Array.isArray(list) ? list : []).map((raw, index) => {
+    const c = (raw ?? {}) as Customer;
     let code = Number(c.code ?? numberFromId(c.id, index + 1));
     if (!Number.isFinite(code) || code <= 0) code = index + 1;
     while (used.has(code)) code += 1;
     used.add(code);
-    return { ...c, code };
+    return {
+      ...c,
+      id: toStr(c.id) || `c_${index}`,
+      code,
+      name: toStr(c.name),
+      neighborhood: toStr(c.neighborhood),
+      address: toStr(c.address),
+      phone: toStr(c.phone),
+    };
   });
 };
 
