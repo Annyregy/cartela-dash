@@ -8,10 +8,12 @@ function escapeRegExp(s: string) {
  * Highlight substrings of `text` that match any whitespace-separated token in `query`.
  * Case- and diacritics-insensitive. Returns the original text when query is empty.
  */
-export function highlight(text: string, query: string): ReactNode {
-  if (!text) return text;
-  const q = query.trim();
-  if (!q) return text;
+export function highlight(text: unknown, query: string): ReactNode {
+  // Coerce anything (numbers, null, undefined, etc.) to a safe string.
+  const safe = text == null ? "" : typeof text === "string" ? text : String(text);
+  if (!safe) return safe;
+  const q = (query ?? "").trim();
+  if (!q) return safe;
 
   const tokens = Array.from(new Set(q.split(/\s+/).filter(Boolean).map(escapeRegExp)));
   if (tokens.length === 0) return text;
