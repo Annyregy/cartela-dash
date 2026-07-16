@@ -20,6 +20,7 @@ import { Products } from "@/components/pos/Products";
 import { Suppliers } from "@/components/pos/Suppliers";
 import { Customers } from "@/components/pos/Customers";
 import { cn } from "@/lib/utils";
+import { TabErrorBoundary } from "@/components/TabErrorBoundary";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -106,12 +107,12 @@ function App() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 py-5">
-        {tab === "painel" && <Dashboard />}
-        {tab === "pedido" && <NewOrder />}
-        {tab === "clientes" && <Customers />}
-        {tab === "produtos" && <Products />}
-        {tab === "fornecedor" && <Suppliers />}
-        {tab === "rotas" && <RoutesLogistics />}
+        {tab === "painel" && <TabErrorBoundary label="o painel"><Dashboard /></TabErrorBoundary>}
+        {tab === "pedido" && <TabErrorBoundary label="Nova Venda"><NewOrder /></TabErrorBoundary>}
+        {tab === "clientes" && <TabErrorBoundary label="Clientes"><Customers /></TabErrorBoundary>}
+        {tab === "produtos" && <TabErrorBoundary label="Produtos"><Products /></TabErrorBoundary>}
+        {tab === "fornecedor" && <TabErrorBoundary label="Fornecedores"><Suppliers /></TabErrorBoundary>}
+        {tab === "rotas" && <TabErrorBoundary label="Rotas"><RoutesLogistics /></TabErrorBoundary>}
       </main>
 
       {/* Mobile bottom nav */}
