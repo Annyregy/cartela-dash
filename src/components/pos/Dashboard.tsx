@@ -627,6 +627,7 @@ function DebtorCard({
 }) {
   const [open, setOpen] = useState(false);
   const [confirmSend, setConfirmSend] = useState(false);
+  const [copied, setCopied] = useState(false);
   const orderBlocks = orders
     .map((o) => {
       const date = new Date(o.createdAt).toLocaleDateString("pt-BR");
