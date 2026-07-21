@@ -692,6 +692,30 @@ function DebtorCard({
           ))}
 
           <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border">
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(waMsg);
+                } catch {
+                  const ta = document.createElement("textarea");
+                  ta.value = waMsg;
+                  document.body.appendChild(ta);
+                  ta.select();
+                  try { document.execCommand("copy"); } catch { /* noop */ }
+                  document.body.removeChild(ta);
+                }
+                setCopied(true);
+                setTimeout(() => setCopied(false), 1800);
+              }}
+              className={cn(
+                "flex items-center justify-center gap-2 py-2.5 rounded-lg bg-muted text-foreground font-medium border border-border hover:border-gold/50 transition text-sm",
+                !phone && "col-span-2"
+              )}
+            >
+              <Copy className="size-4" />
+              {copied ? "Copiado!" : "Copiar pedido"}
+            </button>
             {phone && (
               <button
                 type="button"
@@ -699,15 +723,12 @@ function DebtorCard({
                 className="flex items-center justify-center gap-2 py-2.5 rounded-lg bg-muted text-foreground font-medium border border-border hover:border-gold/50 transition text-sm"
               >
                 <MessageCircle className="size-4" />
-                Cobrar
+                Enviar WhatsApp
               </button>
             )}
             <button
               onClick={onMarkAllPaid}
-              className={cn(
-                "flex items-center justify-center gap-2 py-2.5 rounded-lg bg-success text-success-foreground font-semibold hover:opacity-90 transition text-sm",
-                !phone && "col-span-2"
-              )}
+              className="col-span-2 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-success text-success-foreground font-semibold hover:opacity-90 transition text-sm"
             >
               <CheckCircle2 className="size-4" />
               Quitar tudo
