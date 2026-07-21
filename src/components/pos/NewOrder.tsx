@@ -13,6 +13,13 @@ import {
 import { cn } from "@/lib/utils";
 import { highlight } from "@/lib/highlight";
 
+const safeText = (value: unknown) => (value == null ? "" : typeof value === "string" ? value : String(value));
+const searchText = (value: unknown) => {
+  const text = safeText(value);
+  const normalized = typeof text.normalize === "function" ? text.normalize("NFD") : text;
+  return normalized.replace(/[\u0300-\u036f]/g, "").toLowerCase();
+};
+
 export function NewOrder() {
   const { customers, products, addOrder } = usePos();
   const [query, setQuery] = useState("");
@@ -36,11 +43,12 @@ export function NewOrder() {
   }, [query]);
 
   const filteredCustomers = useMemo(() => {
-    const q = debouncedQuery.trim().toLowerCase();
+    const q = searchText(debouncedQuery.trim());
     if (!q) return customers;
-    return customers.filter((c) =>
-      `${c.code ?? ""} ${c.name} ${c.neighborhood}`.toLowerCase().includes(q)
-    );
+    return customers.filter((c) => {
+      const haystack = searchText(`${safeText(c.code)} ${safeText(c.name)} ${safeText(c.neighborhood)} ${safeText(c.address)} ${safeText(c.phone)}`);
+      return haystack.includes(q);
+    });
   }, [customers, debouncedQuery]);
 
   useEffect(() => {
@@ -49,7 +57,12 @@ export function NewOrder() {
 
   useEffect(() => {
     const el = listRef.current?.querySelector<HTMLElement>(`[data-idx="${highlightIdx}"]`);
-    el?.scrollIntoView({ block: "nearest" });
+    if (!el) return;
+    try {
+      el.scrollIntoView({ block: "nearest" });
+    } catch {
+      el.scrollIntoView(false);
+    }
   }, [highlightIdx]);
 
   const cartItems: CartItem[] = useMemo(
@@ -198,10 +211,10 @@ export function NewOrder() {
             <div className="mt-2 flex items-center justify-between gap-2">
               <div className="min-w-0">
                 <div className="text-foreground font-semibold truncate">
-                  <span className="text-gold tabular-nums">{customer.code ?? "-"}</span> · {customer.name}
+                  <span className="text-gold tabular-nums">{customer.code ?? "-"}</span> · {safeText(customer.name)}
                 </div>
                 <div className="text-sm text-muted-foreground truncate">
-                  {customer.neighborhood} • {customer.address}
+                  {safeText(customer.neighborhood)} • {safeText(customer.address)}
                 </div>
               </div>
               <button
@@ -332,11 +345,11 @@ export function NewOrder() {
                       )}
                     >
                       <div className="text-foreground font-medium">
-                        <span className="text-gold tabular-nums">{highlight(String(c.code ?? "-"), debouncedQuery)}</span> · {highlight(c.name, debouncedQuery)}
+                        <span className="text-gold tabular-nums">{highlight(String(c.code ?? "-"), debouncedQuery)}</span> · {highlight(safeText(c.name), debouncedQuery)}
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        {highlight(c.neighborhood, debouncedQuery)}
-                        {c.phone ? <> • {highlight(c.phone, debouncedQuery)}</> : null}
+                        {highlight(safeText(c.neighborhood), debouncedQuery)}
+                        {safeText(c.phone) ? <> • {highlight(safeText(c.phone), debouncedQuery)}</> : null}
                       </div>
                     </button>
                   );

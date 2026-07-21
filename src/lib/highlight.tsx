@@ -18,8 +18,10 @@ export function highlight(text: unknown, query: string): ReactNode {
   const tokens = Array.from(new Set(q.split(/\s+/).filter(Boolean).map(escapeRegExp)));
   if (tokens.length === 0) return safe;
 
-  const norm = (s: string) =>
-    s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const norm = (s: string) => {
+    const normalized = typeof s.normalize === "function" ? s.normalize("NFD") : s;
+    return normalized.replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  };
 
   const normText = norm(safe);
   const re = new RegExp(`(${tokens.map((t) => norm(t)).join("|")})`, "gi");
