@@ -9,6 +9,11 @@ import {
 } from "@tanstack/react-router";
 
 import appCss from "../styles.css?url";
+import { installDomMutationGuards } from "@/lib/browser-actions";
+
+if (typeof window !== "undefined") {
+  installDomMutationGuards();
+}
 
 function NotFoundComponent() {
   return (
@@ -77,18 +82,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
       { name: "apple-mobile-web-app-title", content: "Granja POS" },
       { name: "mobile-web-app-capable", content: "yes" },
-      { title: "Lovable App" },
-      { name: "description", content: "Egg Route is a mobile-first web application for internal sales and delivery management." },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Egg Route is a mobile-first web application for internal sales and delivery management." },
+      { name: "google", content: "notranslate" },
+      { title: "Granja POS — Vendas e Entregas" },
+      { name: "description", content: "Sistema interno para pedidos, clientes, estoque, fornecedores e rotas de entrega." },
+      { name: "author", content: "Granja POS" },
+      { property: "og:title", content: "Granja POS — Vendas e Entregas" },
+      { property: "og:description", content: "Sistema interno para pedidos, clientes, estoque, fornecedores e rotas de entrega." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
-      { name: "twitter:title", content: "Lovable App" },
-      { name: "twitter:description", content: "Egg Route is a mobile-first web application for internal sales and delivery management." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/80703696-2be3-4640-836e-f910a400028e/id-preview-0337b070--2f36f258-f73e-4fdc-be86-951aa5c41466.lovable.app-1779229215761.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/80703696-2be3-4640-836e-f910a400028e/id-preview-0337b070--2f36f258-f73e-4fdc-be86-951aa5c41466.lovable.app-1779229215761.png" },
+      { name: "twitter:title", content: "Granja POS — Vendas e Entregas" },
+      { name: "twitter:description", content: "Sistema interno para pedidos, clientes, estoque, fornecedores e rotas de entrega." },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
@@ -106,11 +109,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="pt-BR" translate="no" className="notranslate">
       <head>
         <HeadContent />
       </head>
-      <body>
+      <body translate="no" className="notranslate">
         {children}
         <Scripts />
       </body>

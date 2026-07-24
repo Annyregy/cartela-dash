@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Check, Download, Minus, Plus, Save, Search, Send, ShoppingCart, X } from "lucide-react";
 import {
   buildReceipt,
@@ -12,6 +12,7 @@ import {
 } from "@/lib/pos-store";
 import { cn } from "@/lib/utils";
 import { highlight } from "@/lib/highlight";
+import { openExternalUrl } from "@/lib/browser-actions";
 
 const safeText = (value: unknown) => (value == null ? "" : typeof value === "string" ? value : String(value));
 const searchText = (value: unknown) => {
@@ -69,8 +70,9 @@ export function NewOrder() {
     () =>
       Object.entries(cart)
         .filter(([, q]) => q > 0)
-        .map(([id, q]) => {
-          const p = products.find((x) => x.id === id)!;
+        .flatMap(([id, q]) => {
+          const p = products.find((x) => x.id === id);
+          if (!p) return [];
           return { productId: id, name: p.name, unit: p.unit, price: p.price, quantity: q };
         }),
     [cart, products]
@@ -93,7 +95,7 @@ export function NewOrder() {
       return { ...c, [id]: next };
     });
 
-  const reset = () => {
+  const reset = useCallback(() => {
     setCart({});
     setCustomer(null);
     setStatus("Pendente");
@@ -103,10 +105,10 @@ export function NewOrder() {
     setSurchargePercent("");
     setSurchargeValue("");
     setCartOpen(false);
-  };
+  }, []);
 
   const [submitting, setSubmitting] = useState(false);
-  const confirm = (sendWhatsapp: boolean) => {
+  const confirm = useCallback((sendWhatsapp: boolean) => {
     if (submitting) return;
     if (!customer || cartItems.length === 0) return;
     setSubmitting(true);
@@ -130,21 +132,27 @@ export function NewOrder() {
         deliveryStatus: "ativo",
       });
       if (sendWhatsapp) {
-        const url = whatsappLink(customer.phone, buildReceipt(order));
-        // Anchor click works reliably on mobile browsers and installed PWAs
-        const a = document.createElement("a");
-        a.href = url;
-        a.target = "_blank";
-        a.rel = "noopener noreferrer";
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
+        openExternalUrl(whatsappLink(customer.phone, buildReceipt(order)));
       }
       reset();
     } finally {
       setTimeout(() => setSubmitting(false), 300);
     }
-  };
+  }, [
+    addOrder,
+    cartItems,
+    customer,
+    discountPercentNumber,
+    discountValueNumber,
+    payment,
+    reset,
+    status,
+    submitting,
+    subtotal,
+    surchargePercentNumber,
+    surchargeValueNumber,
+    total,
+  ]);
 
 
   // Enter (globally) confirms the order — except inside the customer picker
@@ -161,7 +169,7 @@ export function NewOrder() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  });
+  }, [cartItems.length, confirm, customer, openCustomer]);
 
   // PWA install prompt
   const [installEvt, setInstallEvt] = useState<any>(null);

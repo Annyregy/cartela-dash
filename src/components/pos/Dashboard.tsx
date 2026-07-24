@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Calendar, CheckCircle2, Copy, DollarSign, MessageCircle, Minus, Pencil, Plus, Search, Trash2, TrendingUp, Wallet } from "lucide-react";
 import { buildReceipt, formatBRL, usePos, whatsappLink, type CartItem, type Order, type PaymentMethod, type PaymentStatus } from "@/lib/pos-store";
 import { cn } from "@/lib/utils";
+import { copyText, openExternalUrl } from "@/lib/browser-actions";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -696,14 +697,9 @@ function DebtorCard({
               type="button"
               onClick={async () => {
                 try {
-                  await navigator.clipboard.writeText(waMsg);
+                  await copyText(waMsg);
                 } catch {
-                  const ta = document.createElement("textarea");
-                  ta.value = waMsg;
-                  document.body.appendChild(ta);
-                  ta.select();
-                  try { document.execCommand("copy"); } catch { /* noop */ }
-                  document.body.removeChild(ta);
+                  return;
                 }
                 setCopied(true);
                 setTimeout(() => setCopied(false), 1800);
@@ -751,11 +747,7 @@ function DebtorCard({
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
-                const a = document.createElement("a");
-                a.href = whatsappLink(phone, waMsg);
-                a.target = "_blank";
-                a.rel = "noreferrer";
-                a.click();
+                openExternalUrl(whatsappLink(phone, waMsg));
                 setConfirmSend(false);
               }}
             >
