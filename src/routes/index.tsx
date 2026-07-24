@@ -30,6 +30,13 @@ export const Route = createFileRoute("/")({
         name: "description",
         content: "Sistema interno de vendas e entregas para granja: pedidos rápidos e rotas.",
       },
+      { property: "og:title", content: "Granja POS — Pedidos e Logística" },
+      {
+        property: "og:description",
+        content: "Sistema interno de vendas e entregas para granja: pedidos rápidos e rotas.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Index,
