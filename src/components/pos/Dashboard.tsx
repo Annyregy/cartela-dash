@@ -64,9 +64,11 @@ export function Dashboard() {
   );
 
   const totals = useMemo(() => {
+    const paidOf = (o: Order) =>
+      o.paymentStatus === "Pago" ? o.total : Math.min(o.total, Math.max(0, o.paidAmount ?? 0));
     const total = filtered.reduce((s, o) => s + o.total, 0);
-    const pago = filtered.filter((o) => o.paymentStatus === "Pago").reduce((s, o) => s + o.total, 0);
-    const pendente = filtered.filter((o) => o.paymentStatus === "Pendente").reduce((s, o) => s + o.total, 0);
+    const pago = filtered.reduce((s, o) => s + paidOf(o), 0);
+    const pendente = filtered.reduce((s, o) => s + (o.total - paidOf(o)), 0);
     return { total, pago, pendente, count: filtered.length };
   }, [filtered]);
 
@@ -74,6 +76,8 @@ export function Dashboard() {
     const map = new Map<string, { customerId: string; name: string; phone: string; total: number; orders: Order[] }>();
     for (const o of orders) {
       if (o.paymentStatus !== "Pendente") continue;
+      const remaining = Math.max(0, o.total - Math.max(0, o.paidAmount ?? 0));
+      if (remaining <= 0.005) continue;
       const entry = map.get(o.customerId) ?? {
         customerId: o.customerId,
         name: o.customerName,
@@ -81,7 +85,7 @@ export function Dashboard() {
         total: 0,
         orders: [],
       };
-      entry.total += o.total;
+      entry.total += remaining;
       entry.orders.push(o);
       map.set(o.customerId, entry);
     }
