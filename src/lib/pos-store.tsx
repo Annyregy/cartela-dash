@@ -268,6 +268,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
         completeDelivery,
         markPaid,
         markUnpaid,
+        addPartialPayment,
         addProduct,
         updateProduct,
         deleteProduct,
