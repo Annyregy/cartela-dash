@@ -27,6 +27,7 @@ type State = {
   completeDelivery: (id: string) => void;
   markPaid: (id: string) => void;
   markUnpaid: (id: string) => void;
+  addPartialPayment: (id: string, amount: number) => void;
   addProduct: (p: Omit<Product, "id">) => void;
   updateProduct: (id: string, p: Partial<Omit<Product, "id">>) => void;
   deleteProduct: (id: string) => void;
