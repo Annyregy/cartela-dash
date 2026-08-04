@@ -27,6 +27,7 @@ type State = {
   completeDelivery: (id: string) => void;
   markPaid: (id: string) => void;
   markUnpaid: (id: string) => void;
+  addPartialPayment: (id: string, amount: number) => void;
   addProduct: (p: Omit<Product, "id">) => void;
   updateProduct: (id: string, p: Partial<Omit<Product, "id">>) => void;
   deleteProduct: (id: string) => void;
@@ -183,10 +184,20 @@ export function PosProvider({ children }: { children: ReactNode }) {
     setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, deliveryStatus: "concluido" } : o)));
 
   const markPaid: State["markPaid"] = (id) =>
-    setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, paymentStatus: "Pago" } : o)));
+    setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, paymentStatus: "Pago", paidAmount: o.total } : o)));
 
   const markUnpaid: State["markUnpaid"] = (id) =>
-    setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, paymentStatus: "Pendente" } : o)));
+    setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, paymentStatus: "Pendente", paidAmount: 0 } : o)));
+
+  const addPartialPayment: State["addPartialPayment"] = (id, amount) =>
+    setOrders((prev) =>
+      prev.map((o) => {
+        if (o.id !== id) return o;
+        const paid = Math.min(o.total, Math.max(0, (o.paidAmount ?? 0) + (Number(amount) || 0)));
+        return { ...o, paidAmount: paid, paymentStatus: paid >= o.total - 0.005 ? "Pago" : "Pendente" };
+      })
+    );
+
 
   const addProduct: State["addProduct"] = (p) =>
     setProducts((prev) => [...prev, { ...p, id: `p_${Date.now()}` }]);
@@ -257,6 +268,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
         completeDelivery,
         markPaid,
         markUnpaid,
+        addPartialPayment,
         addProduct,
         updateProduct,
         deleteProduct,
