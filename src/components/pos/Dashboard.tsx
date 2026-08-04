@@ -623,6 +623,7 @@ function DebtorCard({
   orders,
   onMarkAllPaid,
   onMarkOrderPaid,
+  onPartialPay,
 }: {
   name: string;
   phone: string;
@@ -630,11 +631,23 @@ function DebtorCard({
   orders: Order[];
   onMarkAllPaid: () => void;
   onMarkOrderPaid: (id: string) => void;
+  onPartialPay: (id: string, amount: number) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [confirmSend, setConfirmSend] = useState(false);
   const [copied, setCopied] = useState(false);
-  const orderBlocks = orders
+  const [selected, setSelected] = useState<string[]>([]);
+  const [payTarget, setPayTarget] = useState<Order | null>(null);
+  const [payValue, setPayValue] = useState("");
+
+  const remainingOf = (o: Order) => Math.max(0, o.total - Math.max(0, o.paidAmount ?? 0));
+  const toggle = (id: string) =>
+    setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+
+  const chosen = selected.length ? orders.filter((o) => selected.includes(o.id)) : orders;
+  const chosenTotal = chosen.reduce((s, o) => s + remainingOf(o), 0);
+
+  const orderBlocks = chosen
     .map((o) => {
       const date = new Date(o.createdAt).toLocaleDateString("pt-BR");
       const items = o.items
@@ -645,7 +658,11 @@ function DebtorCard({
             )}`
         )
         .join("\n");
-      return `📅 *${date}*\n${items}\n   Subtotal do pedido: *${formatBRL(o.total)}*`;
+      const paid = Math.max(0, o.paidAmount ?? 0);
+      const paidLine = paid > 0 ? `\n   Já pago: ${formatBRL(paid)}` : "";
+      return `📅 *${date}*\n${items}\n   Total do pedido: ${formatBRL(o.total)}${paidLine}\n   Em aberto: *${formatBRL(
+        remainingOf(o)
+      )}*`;
     })
     .join("\n\n");
   const waMsg =
@@ -653,8 +670,10 @@ function DebtorCard({
     `Segue o resumo dos pedidos em aberto:\n\n` +
     `${orderBlocks}\n\n` +
     `━━━━━━━━━━━━━━━\n` +
-    `*Total pendente: ${formatBRL(total)}*\n\n` +
+    `*Total pendente: ${formatBRL(chosenTotal)}*\n\n` +
     `Quando puder acertar, ficaremos muito gratos. Obrigado! 🙏`;
+
+  const parseAmount = (v: string) => Number(v.replace(/\./g, "").replace(",", ".")) || 0;
 
   return (
     <div className="rounded-xl bg-surface border border-border overflow-hidden">
@@ -673,29 +692,79 @@ function DebtorCard({
 
       {open && (
         <div className="border-t border-border p-4 space-y-3 bg-background/40">
-          {orders.map((o) => (
-            <div key={o.id} className="flex items-center justify-between gap-3 text-sm">
-              <div className="min-w-0">
-                <div className="text-foreground truncate">
-                  {new Date(o.createdAt).toLocaleDateString("pt-BR")} — {o.paymentMethod}
-                </div>
-                <div className="text-xs text-muted-foreground truncate">
-                  {o.items.map((i) => `${i.quantity}x ${i.name}`).join(", ")}
-                </div>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="text-gold font-semibold tabular-nums">{formatBRL(o.total)}</span>
-                <button
-                  onClick={() => onMarkOrderPaid(o.id)}
-                  className="p-1.5 rounded-md bg-success text-success-foreground hover:opacity-80"
-                  aria-label="Marcar como pago"
-                  title="Marcar como pago"
-                >
-                  <CheckCircle2 className="size-4" />
-                </button>
-              </div>
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>
+              {selected.length
+                ? `${selected.length} selecionado${selected.length === 1 ? "" : "s"} — ${formatBRL(chosenTotal)}`
+                : "Nenhum selecionado (envia todos)"}
+            </span>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setSelected(orders.map((o) => o.id))}
+                className="underline hover:text-foreground"
+              >
+                Todos
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelected([])}
+                className="underline hover:text-foreground"
+              >
+                Limpar
+              </button>
             </div>
-          ))}
+          </div>
+
+          {orders.map((o) => {
+            const paid = Math.max(0, o.paidAmount ?? 0);
+            return (
+              <div key={o.id} className="flex items-start justify-between gap-3 text-sm">
+                <label className="flex items-start gap-2 min-w-0 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selected.includes(o.id)}
+                    onChange={() => toggle(o.id)}
+                    className="mt-1 size-4 accent-[hsl(var(--gold))] shrink-0"
+                  />
+                  <span className="min-w-0">
+                    <span className="block text-foreground truncate">
+                      {new Date(o.createdAt).toLocaleDateString("pt-BR")} — {o.paymentMethod}
+                    </span>
+                    <span className="block text-xs text-muted-foreground truncate">
+                      {o.items.map((i) => `${i.quantity}x ${i.name}`).join(", ")}
+                    </span>
+                    {paid > 0 && (
+                      <span className="block text-xs text-success">
+                        Pago parcial: {formatBRL(paid)} de {formatBRL(o.total)}
+                      </span>
+                    )}
+                  </span>
+                </label>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-gold font-semibold tabular-nums">{formatBRL(remainingOf(o))}</span>
+                  <button
+                    onClick={() => {
+                      setPayTarget(o);
+                      setPayValue("");
+                    }}
+                    className="px-2 py-1.5 rounded-md bg-muted text-foreground text-xs font-medium hover:bg-muted/70"
+                    title="Pagar parcial"
+                  >
+                    Parcial
+                  </button>
+                  <button
+                    onClick={() => onMarkOrderPaid(o.id)}
+                    className="p-1.5 rounded-md bg-success text-success-foreground hover:opacity-80"
+                    aria-label="Marcar como pago"
+                    title="Marcar como pago"
+                  >
+                    <CheckCircle2 className="size-4" />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
 
           <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border">
             <button
@@ -715,7 +784,7 @@ function DebtorCard({
               )}
             >
               <Copy className="size-4" />
-              {copied ? "Copiado!" : "Copiar pedido"}
+              {copied ? "Copiado!" : selected.length ? "Copiar selecionados" : "Copiar pedido"}
             </button>
             {phone && (
               <button
@@ -724,7 +793,7 @@ function DebtorCard({
                 className="flex items-center justify-center gap-2 py-2.5 rounded-lg bg-muted text-foreground font-medium border border-border hover:border-gold/50 transition text-sm"
               >
                 <MessageCircle className="size-4" />
-                Enviar WhatsApp
+                {selected.length ? "Enviar selecionados" : "Enviar WhatsApp"}
               </button>
             )}
             <button
@@ -738,14 +807,73 @@ function DebtorCard({
         </div>
       )}
 
+      {payTarget && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          onClick={() => setPayTarget(null)}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl bg-surface border border-border p-5 space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div>
+              <div className="font-bold text-foreground">Pagamento parcial</div>
+              <div className="text-sm text-muted-foreground mt-1">
+                {name} • Em aberto: <strong>{formatBRL(remainingOf(payTarget))}</strong>
+              </div>
+            </div>
+            <input
+              autoFocus
+              inputMode="decimal"
+              value={payValue}
+              onChange={(e) => setPayValue(e.target.value)}
+              placeholder="Valor recebido (ex: 50,00)"
+              className="w-full px-3 py-3 rounded-lg bg-input text-foreground border border-border focus:outline-none focus:ring-2 focus:ring-gold"
+            />
+            <div className="flex flex-wrap gap-2">
+              {[0.25, 0.5, 0.75, 1].map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  onClick={() =>
+                    setPayValue((remainingOf(payTarget) * f).toFixed(2).replace(".", ","))
+                  }
+                  className="px-3 py-1.5 rounded-md bg-muted text-foreground text-xs font-medium hover:bg-muted/70"
+                >
+                  {f === 1 ? "Tudo" : `${f * 100}%`}
+                </button>
+              ))}
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setPayTarget(null)}
+                className="py-2.5 rounded-lg bg-muted text-foreground font-medium"
+              >
+                Cancelar
+              </button>
+              <button
+                disabled={parseAmount(payValue) <= 0}
+                onClick={() => {
+                  onPartialPay(payTarget.id, parseAmount(payValue));
+                  setPayTarget(null);
+                }}
+                className="py-2.5 rounded-lg bg-gold text-gold-foreground font-semibold disabled:opacity-50"
+              >
+                Registrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <AlertDialog open={confirmSend} onOpenChange={setConfirmSend}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Enviar cobrança pelo WhatsApp?</AlertDialogTitle>
             <AlertDialogDescription>
               Você vai enviar para <strong>{name}</strong> o resumo de{" "}
-              {orders.length} {orders.length === 1 ? "pedido pendente" : "pedidos pendentes"} no total de{" "}
-              <strong>{formatBRL(total)}</strong>. Deseja continuar?
+              {chosen.length} {chosen.length === 1 ? "pedido pendente" : "pedidos pendentes"} no total de{" "}
+              <strong>{formatBRL(chosenTotal)}</strong>. Deseja continuar?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -764,5 +892,6 @@ function DebtorCard({
     </div>
   );
 }
+
 
 void buildReceipt;
