@@ -725,7 +725,7 @@ function DebtorCard({
                     type="checkbox"
                     checked={selected.includes(o.id)}
                     onChange={() => toggle(o.id)}
-                    className="mt-1 size-4 accent-[hsl(var(--gold))] shrink-0"
+                    className="mt-1 size-4 accent-gold shrink-0"
                   />
                   <span className="min-w-0">
                     <span className="block text-foreground truncate">
