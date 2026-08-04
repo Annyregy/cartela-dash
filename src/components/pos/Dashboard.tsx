@@ -244,6 +244,7 @@ export function Dashboard() {
                 orders={r.orders}
                 onMarkAllPaid={() => r.orders.forEach((o) => markPaid(o.id))}
                 onMarkOrderPaid={(id) => markPaid(id)}
+                onPartialPay={(id, amount) => addPartialPayment(id, amount)}
               />
             ))}
           </div>
