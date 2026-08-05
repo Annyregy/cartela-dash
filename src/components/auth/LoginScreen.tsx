@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Egg, KeyRound, LogIn, UserPlus } from "lucide-react";
+import { Egg, Eye, EyeOff, KeyRound, LogIn, UserPlus } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
@@ -246,17 +246,33 @@ function Field({
   placeholder?: string;
   autoFocus?: boolean;
 }) {
+  const [reveal, setReveal] = useState(false);
+  const isPassword = type === "password";
+  const inputType = isPassword && reveal ? "text" : type;
   return (
     <label className="block text-xs font-medium">
       {label}
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        autoFocus={autoFocus}
-        className="mt-1 w-full bg-surface border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-      />
+      <div className="relative mt-1">
+        <input
+          type={inputType}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          autoFocus={autoFocus}
+          className="w-full bg-surface border border-border rounded-md px-3 py-2 pr-9 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+        />
+        {isPassword && (
+          <button
+            type="button"
+            onClick={() => setReveal((r) => !r)}
+            tabIndex={-1}
+            className="absolute inset-y-0 right-0 flex items-center px-2.5 text-muted-foreground hover:text-foreground"
+            aria-label={reveal ? "Ocultar senha" : "Mostrar senha"}
+          >
+            {reveal ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+          </button>
+        )}
+      </div>
     </label>
   );
 }
