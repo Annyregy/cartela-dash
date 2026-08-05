@@ -6,8 +6,9 @@ import { cn } from "@/lib/utils";
 type Mode = "login" | "signup" | "reset";
 
 export function LoginScreen() {
-  const { login, signup, getQuestion, resetPassword, users } = useAuth();
-  const [mode, setMode] = useState<Mode>(users.length === 0 ? "signup" : "login");
+  const { login, signup, getQuestion, resetPassword } = useAuth();
+  const [mode, setMode] = useState<Mode>("login");
+
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);

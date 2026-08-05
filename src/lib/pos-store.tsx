@@ -1,10 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import {
-  INITIAL_CUSTOMERS,
-  INITIAL_PRODUCTS,
-  INITIAL_SUPPLIERS,
-  SEED_ORDERS,
-  SEED_PURCHASES,
   type CartItem,
   type Customer,
   type Order,
@@ -16,11 +12,13 @@ import {
 } from "./pos-data";
 
 type State = {
+  loading: boolean;
   customers: Customer[];
   products: Product[];
   orders: Order[];
   suppliers: Supplier[];
   purchases: Purchase[];
+  refresh: () => Promise<void>;
   addOrder: (o: Omit<Order, "id" | "createdAt">) => Order;
   updateOrder: (id: string, patch: Partial<Omit<Order, "id" | "createdAt" | "customerId">>) => void;
   deleteOrder: (id: string) => void;
@@ -41,125 +39,234 @@ type State = {
   deletePurchase: (id: string) => void;
 };
 
-const KEY = "pos-store-v2";
 const Ctx = createContext<State | null>(null);
 
-type Persisted = {
-  products: Product[];
-  orders: Order[];
-  suppliers: Supplier[];
-  purchases: Purchase[];
-  customers: Customer[];
+const num = (v: unknown) => (v == null ? 0 : Number(v) || 0);
+const optNum = (v: unknown) => (v == null ? undefined : Number(v) || 0);
+const str = (v: unknown) => (v == null ? "" : typeof v === "string" ? v : String(v));
+
+/* ---------- row <-> app mappers ---------- */
+
+type Row = Record<string, unknown>;
+
+const toCustomer = (r: Row): Customer => ({
+  id: str(r['id']),
+  code: r['code'] == null ? undefined : Number(r['code']),
+  name: str(r['name']),
+  phone: str(r['phone']),
+  address: str(r['address']),
+  neighborhood: str(r['neighborhood']),
+});
+
+const customerRow = (c: Partial<Customer> & { id?: string }) => ({
+  ...(c.id !== undefined ? { id: c.id } : {}),
+  ...(c.code !== undefined ? { code: c.code } : {}),
+  ...(c.name !== undefined ? { name: c.name } : {}),
+  ...(c.phone !== undefined ? { phone: c.phone } : {}),
+  ...(c.address !== undefined ? { address: c.address } : {}),
+  ...(c.neighborhood !== undefined ? { neighborhood: c.neighborhood } : {}),
+});
+
+const toProduct = (r: Row): Product => ({
+  id: str(r['id']),
+  name: str(r['name']),
+  unit: str(r['unit']),
+  price: num(r['price']),
+  stock: num(r['stock']),
+});
+
+const productRow = (p: Partial<Product> & { id?: string }) => ({
+  ...(p.id !== undefined ? { id: p.id } : {}),
+  ...(p.name !== undefined ? { name: p.name } : {}),
+  ...(p.unit !== undefined ? { unit: p.unit } : {}),
+  ...(p.price !== undefined ? { price: p.price } : {}),
+  ...(p.stock !== undefined ? { stock: p.stock } : {}),
+});
+
+const toSupplier = (r: Row): Supplier => ({
+  id: str(r['id']),
+  name: str(r['name']),
+  phone: str(r['phone']),
+  contact: str(r['contact']),
+  notes: str(r['notes']),
+});
+
+const supplierRow = (s: Partial<Supplier> & { id?: string }) => ({
+  ...(s.id !== undefined ? { id: s.id } : {}),
+  ...(s.name !== undefined ? { name: s.name } : {}),
+  ...(s.phone !== undefined ? { phone: s.phone } : {}),
+  ...(s.contact !== undefined ? { contact: s.contact } : {}),
+  ...(s.notes !== undefined ? { notes: s.notes } : {}),
+});
+
+const toOrder = (r: Row): Order => ({
+  id: str(r['id']),
+  customerId: str(r['customer_id']),
+  customerCode: r['customer_code'] == null ? undefined : Number(r['customer_code']),
+  customerName: str(r['customer_name']),
+  phone: str(r['phone']),
+  address: str(r['address']),
+  neighborhood: str(r['neighborhood']),
+  items: (Array.isArray(r['items']) ? r['items'] : []) as CartItem[],
+  subtotal: optNum(r['subtotal']),
+  discountPercent: optNum(r['discount_percent']),
+  discountValue: optNum(r['discount_value']),
+  surchargePercent: optNum(r['surcharge_percent']),
+  surchargeValue: optNum(r['surcharge_value']),
+  total: num(r['total']),
+  paymentMethod: (str(r['payment_method']) || "Dinheiro") as PaymentMethod,
+  paymentStatus: (str(r['payment_status']) || "Pendente") as PaymentStatus,
+  paidAmount: num(r['paid_amount']),
+  deliveryStatus: (str(r['delivery_status']) || "ativo") as Order["deliveryStatus"],
+  createdAt: str(r['created_at']),
+});
+
+const orderRow = (o: Partial<Order> & { id?: string }) => ({
+  ...(o.id !== undefined ? { id: o.id } : {}),
+  ...(o.customerId !== undefined ? { customer_id: o.customerId } : {}),
+  ...(o.customerCode !== undefined ? { customer_code: o.customerCode } : {}),
+  ...(o.customerName !== undefined ? { customer_name: o.customerName } : {}),
+  ...(o.phone !== undefined ? { phone: o.phone } : {}),
+  ...(o.address !== undefined ? { address: o.address } : {}),
+  ...(o.neighborhood !== undefined ? { neighborhood: o.neighborhood } : {}),
+  ...(o.items !== undefined ? { items: o.items } : {}),
+  ...(o.subtotal !== undefined ? { subtotal: o.subtotal } : {}),
+  ...(o.discountPercent !== undefined ? { discount_percent: o.discountPercent } : {}),
+  ...(o.discountValue !== undefined ? { discount_value: o.discountValue } : {}),
+  ...(o.surchargePercent !== undefined ? { surcharge_percent: o.surchargePercent } : {}),
+  ...(o.surchargeValue !== undefined ? { surcharge_value: o.surchargeValue } : {}),
+  ...(o.total !== undefined ? { total: o.total } : {}),
+  ...(o.paymentMethod !== undefined ? { payment_method: o.paymentMethod } : {}),
+  ...(o.paymentStatus !== undefined ? { payment_status: o.paymentStatus } : {}),
+  ...(o.paidAmount !== undefined ? { paid_amount: o.paidAmount } : {}),
+  ...(o.deliveryStatus !== undefined ? { delivery_status: o.deliveryStatus } : {}),
+  ...(o.createdAt !== undefined ? { created_at: o.createdAt } : {}),
+});
+
+const toPurchase = (r: Row): Purchase => ({
+  id: str(r['id']),
+  supplierId: str(r['supplier_id']),
+  supplierName: str(r['supplier_name']),
+  items: (Array.isArray(r['items']) ? r['items'] : []) as Purchase["items"],
+  total: num(r['total']),
+  notes: str(r['notes']),
+  createdAt: str(r['created_at']),
+});
+
+const purchaseRow = (p: Purchase) => ({
+  id: p.id,
+  supplier_id: p.supplierId,
+  supplier_name: p.supplierName,
+  items: p.items,
+  total: p.total,
+  notes: p.notes,
+  created_at: p.createdAt,
+});
+
+/* ---------- write helpers (fire and forget, logged on failure) ---------- */
+
+type TableName = "customers" | "products" | "suppliers" | "orders" | "purchases";
+
+const save = (table: TableName, row: Record<string, unknown>) => {
+  void supabase
+    .from(table)
+    .upsert(row as never)
+    .then(({ error }) => {
+      if (error) console.error(`[cloud] falha ao salvar em ${table}`, error);
+    });
 };
 
-const numberFromId = (id: string, fallback: number) => {
-  const n = Number(id.replace(/\D/g, ""));
-  return Number.isFinite(n) && n > 0 ? n : fallback;
+const patch = (table: TableName, id: string, row: Record<string, unknown>) => {
+  if (Object.keys(row).length === 0) return;
+  void supabase
+    .from(table)
+    .update(row as never)
+    .eq("id", id)
+    .then(({ error }) => {
+      if (error) console.error(`[cloud] falha ao atualizar ${table}`, error);
+    });
 };
 
-const toStr = (v: unknown) => (v == null ? "" : typeof v === "string" ? v : String(v));
-
-const normalizeCustomers = (list: Customer[]) => {
-  const used = new Set<number>();
-  return (Array.isArray(list) ? list : []).map((raw, index) => {
-    const c = (raw ?? {}) as Customer;
-    let code = Number(c.code ?? numberFromId(c.id, index + 1));
-    if (!Number.isFinite(code) || code <= 0) code = index + 1;
-    while (used.has(code)) code += 1;
-    used.add(code);
-    return {
-      ...c,
-      id: toStr(c.id) || `c_${index}`,
-      code,
-      name: toStr(c.name),
-      neighborhood: toStr(c.neighborhood),
-      address: toStr(c.address),
-      phone: toStr(c.phone),
-    };
-  });
+const remove = (table: TableName, id: string) => {
+  void supabase
+    .from(table)
+    .delete()
+    .eq("id", id)
+    .then(({ error }) => {
+      if (error) console.error(`[cloud] falha ao excluir de ${table}`, error);
+    });
 };
 
 const nextCustomerCode = (list: Customer[]) =>
-  Math.max(0, ...list.map((c, i) => Number(c.code ?? numberFromId(c.id, i + 1)))) + 1;
-
-function load(): Persisted {
-  const fallback: Persisted = {
-    products: INITIAL_PRODUCTS,
-    orders: SEED_ORDERS,
-    suppliers: INITIAL_SUPPLIERS,
-    purchases: SEED_PURCHASES,
-    customers: normalizeCustomers(INITIAL_CUSTOMERS),
-  };
-  if (typeof window === "undefined") return fallback;
-  try {
-    const raw = window.localStorage.getItem(KEY);
-    if (!raw) return fallback;
-    const parsed = JSON.parse(raw) as Partial<Persisted>;
-    return {
-      products: parsed.products ?? INITIAL_PRODUCTS,
-      orders: parsed.orders ?? SEED_ORDERS,
-      suppliers: parsed.suppliers ?? INITIAL_SUPPLIERS,
-      purchases: parsed.purchases ?? SEED_PURCHASES,
-      customers: normalizeCustomers(parsed.customers ?? INITIAL_CUSTOMERS),
-    };
-  } catch {
-    return fallback;
-  }
-}
+  Math.max(0, ...list.map((c) => Number(c.code) || 0)) + 1;
 
 export function PosProvider({ children }: { children: ReactNode }) {
-  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
+  const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
-  const [suppliers, setSuppliers] = useState<Supplier[]>(INITIAL_SUPPLIERS);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [purchases, setPurchases] = useState<Purchase[]>([]);
-  const [customers, setCustomers] = useState<Customer[]>(() => normalizeCustomers(INITIAL_CUSTOMERS));
-  const [hydrated, setHydrated] = useState(false);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const refresh = async () => {
+    const [c, p, s, o, b] = await Promise.all([
+      supabase.from("customers").select("*").order("code", { ascending: true }),
+      supabase.from("products").select("*").order("created_at", { ascending: true }),
+      supabase.from("suppliers").select("*").order("created_at", { ascending: true }),
+      supabase.from("orders").select("*").order("created_at", { ascending: false }),
+      supabase.from("purchases").select("*").order("created_at", { ascending: false }),
+    ]);
+    if (c.data) setCustomers((c.data as Row[]).map(toCustomer));
+    if (p.data) setProducts((p.data as Row[]).map(toProduct));
+    if (s.data) setSuppliers((s.data as Row[]).map(toSupplier));
+    if (o.data) setOrders((o.data as Row[]).map(toOrder));
+    if (b.data) setPurchases((b.data as Row[]).map(toPurchase));
+    setLoading(false);
+  };
 
   useEffect(() => {
-    const p = load();
-    setProducts(p.products);
-    setOrders(p.orders);
-    setSuppliers(p.suppliers);
-    setPurchases(p.purchases);
-    setCustomers(p.customers);
-    setHydrated(true);
+    void refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    if (!hydrated) return;
-    window.localStorage.setItem(KEY, JSON.stringify({ products, orders, suppliers, purchases, customers }));
-  }, [products, orders, suppliers, purchases, customers, hydrated]);
+  /* ---------- orders ---------- */
 
+  const applyStock = (deltas: Map<string, number>) => {
+    if (deltas.size === 0) return;
+    setProducts((prev) =>
+      prev.map((p) => {
+        const d = deltas.get(p.id);
+        if (!d) return p;
+        const stock = Math.max(0, p.stock + d);
+        patch("products", p.id, { stock });
+        return { ...p, stock };
+      })
+    );
+  };
 
   const addOrder: State["addOrder"] = (o) => {
     const order: Order = { ...o, id: `o_${Date.now()}`, createdAt: new Date().toISOString() };
-    setProducts((prev) =>
-      prev.map((p) => {
-        const item = o.items.find((i) => i.productId === p.id);
-        return item ? { ...p, stock: Math.max(0, p.stock - item.quantity) } : p;
-      })
-    );
+    const deltas = new Map<string, number>();
+    o.items.forEach((i) => deltas.set(i.productId, -(i.quantity ?? 0)));
+    applyStock(deltas);
     setOrders((prev) => [order, ...prev]);
+    save("orders", orderRow(order));
     return order;
   };
 
-  const updateOrder: State["updateOrder"] = (id, patch) => {
+  const updateOrder: State["updateOrder"] = (id, p) => {
     setOrders((prev) => {
       const current = prev.find((o) => o.id === id);
       if (!current) return prev;
-      const nextItems = patch.items ?? current.items;
-      // stock diff: return old items, deduct new items
-      if (patch.items) {
-        setProducts((prods) =>
-          prods.map((p) => {
-            const oldQty = current.items.find((i) => i.productId === p.id)?.quantity ?? 0;
-            const newQty = nextItems.find((i) => i.productId === p.id)?.quantity ?? 0;
-            const delta = oldQty - newQty; // positive => restore stock
-            return delta !== 0 ? { ...p, stock: Math.max(0, p.stock + delta) } : p;
-          })
-        );
+      const nextItems = p.items ?? current.items;
+      if (p.items) {
+        const deltas = new Map<string, number>();
+        current.items.forEach((i) => deltas.set(i.productId, (deltas.get(i.productId) ?? 0) + i.quantity));
+        nextItems.forEach((i) => deltas.set(i.productId, (deltas.get(i.productId) ?? 0) - i.quantity));
+        applyStock(deltas);
       }
-      return prev.map((o) => (o.id === id ? { ...o, ...patch, items: nextItems } : o));
+      patch("orders", id, orderRow({ ...p, items: nextItems }));
+      return prev.map((o) => (o.id === id ? { ...o, ...p, items: nextItems } : o));
     });
   };
 
@@ -167,55 +274,84 @@ export function PosProvider({ children }: { children: ReactNode }) {
     setOrders((prev) => {
       const target = prev.find((o) => o.id === id);
       if (target) {
-        setProducts((prods) =>
-          prods.map((p) => {
-            const item = target.items.find((i) => i.productId === p.id);
-            return item ? { ...p, stock: p.stock + item.quantity } : p;
-          })
-        );
+        const deltas = new Map<string, number>();
+        target.items.forEach((i) => deltas.set(i.productId, (deltas.get(i.productId) ?? 0) + i.quantity));
+        applyStock(deltas);
       }
+      remove("orders", id);
       return prev.filter((o) => o.id !== id);
     });
   };
 
-
-
-  const completeDelivery: State["completeDelivery"] = (id) =>
+  const completeDelivery: State["completeDelivery"] = (id) => {
+    patch("orders", id, { delivery_status: "concluido" });
     setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, deliveryStatus: "concluido" } : o)));
+  };
 
   const markPaid: State["markPaid"] = (id) =>
-    setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, paymentStatus: "Pago", paidAmount: o.total } : o)));
+    setOrders((prev) =>
+      prev.map((o) => {
+        if (o.id !== id) return o;
+        patch("orders", id, { payment_status: "Pago", paid_amount: o.total });
+        return { ...o, paymentStatus: "Pago", paidAmount: o.total };
+      })
+    );
 
-  const markUnpaid: State["markUnpaid"] = (id) =>
-    setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, paymentStatus: "Pendente", paidAmount: 0 } : o)));
+  const markUnpaid: State["markUnpaid"] = (id) => {
+    patch("orders", id, { payment_status: "Pendente", paid_amount: 0 });
+    setOrders((prev) =>
+      prev.map((o) => (o.id === id ? { ...o, paymentStatus: "Pendente", paidAmount: 0 } : o))
+    );
+  };
 
   const addPartialPayment: State["addPartialPayment"] = (id, amount) =>
     setOrders((prev) =>
       prev.map((o) => {
         if (o.id !== id) return o;
         const paid = Math.min(o.total, Math.max(0, (o.paidAmount ?? 0) + (Number(amount) || 0)));
-        return { ...o, paidAmount: paid, paymentStatus: paid >= o.total - 0.005 ? "Pago" : "Pendente" };
+        const status: PaymentStatus = paid >= o.total - 0.005 ? "Pago" : "Pendente";
+        patch("orders", id, { paid_amount: paid, payment_status: status });
+        return { ...o, paidAmount: paid, paymentStatus: status };
       })
     );
 
+  /* ---------- products ---------- */
 
-  const addProduct: State["addProduct"] = (p) =>
-    setProducts((prev) => [...prev, { ...p, id: `p_${Date.now()}` }]);
+  const addProduct: State["addProduct"] = (p) => {
+    const product: Product = { ...p, id: `p_${Date.now()}` };
+    setProducts((prev) => [...prev, product]);
+    save("products", productRow(product));
+  };
 
-  const updateProduct: State["updateProduct"] = (id, patch) =>
-    setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
+  const updateProduct: State["updateProduct"] = (id, p) => {
+    patch("products", id, productRow(p));
+    setProducts((prev) => prev.map((x) => (x.id === id ? { ...x, ...p } : x)));
+  };
 
-  const deleteProduct: State["deleteProduct"] = (id) =>
+  const deleteProduct: State["deleteProduct"] = (id) => {
+    remove("products", id);
     setProducts((prev) => prev.filter((p) => p.id !== id));
+  };
 
-  const addSupplier: State["addSupplier"] = (s) =>
-    setSuppliers((prev) => [...prev, { ...s, id: `s_${Date.now()}` }]);
+  /* ---------- suppliers ---------- */
 
-  const updateSupplier: State["updateSupplier"] = (id, patch) =>
-    setSuppliers((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
+  const addSupplier: State["addSupplier"] = (s) => {
+    const supplier: Supplier = { ...s, id: `s_${Date.now()}` };
+    setSuppliers((prev) => [...prev, supplier]);
+    save("suppliers", supplierRow(supplier));
+  };
 
-  const deleteSupplier: State["deleteSupplier"] = (id) =>
+  const updateSupplier: State["updateSupplier"] = (id, s) => {
+    patch("suppliers", id, supplierRow(s));
+    setSuppliers((prev) => prev.map((x) => (x.id === id ? { ...x, ...s } : x)));
+  };
+
+  const deleteSupplier: State["deleteSupplier"] = (id) => {
+    remove("suppliers", id);
     setSuppliers((prev) => prev.filter((s) => s.id !== id));
+  };
+
+  /* ---------- purchases ---------- */
 
   const addPurchase: State["addPurchase"] = (p) => {
     const purchase: Purchase = {
@@ -223,19 +359,20 @@ export function PosProvider({ children }: { children: ReactNode }) {
       id: `buy_${Date.now()}`,
       createdAt: p.createdAt ?? new Date().toISOString(),
     };
-    // Atualiza estoque ao registrar a compra
-    setProducts((prev) =>
-      prev.map((pr) => {
-        const item = p.items.find((i) => i.productId === pr.id);
-        return item ? { ...pr, stock: pr.stock + item.quantity } : pr;
-      })
-    );
+    const deltas = new Map<string, number>();
+    purchase.items.forEach((i) => deltas.set(i.productId, (deltas.get(i.productId) ?? 0) + i.quantity));
+    applyStock(deltas);
     setPurchases((prev) => [purchase, ...prev]);
+    save("purchases", purchaseRow(purchase));
     return purchase;
   };
 
-  const deletePurchase: State["deletePurchase"] = (id) =>
+  const deletePurchase: State["deletePurchase"] = (id) => {
+    remove("purchases", id);
     setPurchases((prev) => prev.filter((p) => p.id !== id));
+  };
+
+  /* ---------- customers ---------- */
 
   const addCustomer: State["addCustomer"] = (c) => {
     const code = Number(c.code);
@@ -245,23 +382,30 @@ export function PosProvider({ children }: { children: ReactNode }) {
       id: `c_${Date.now()}`,
     };
     setCustomers((prev) => [customer, ...prev]);
+    save("customers", customerRow(customer));
     return customer;
   };
 
-  const updateCustomer: State["updateCustomer"] = (id, patch) =>
-    setCustomers((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)));
+  const updateCustomer: State["updateCustomer"] = (id, c) => {
+    patch("customers", id, customerRow(c));
+    setCustomers((prev) => prev.map((x) => (x.id === id ? { ...x, ...c } : x)));
+  };
 
-  const deleteCustomer: State["deleteCustomer"] = (id) =>
+  const deleteCustomer: State["deleteCustomer"] = (id) => {
+    remove("customers", id);
     setCustomers((prev) => prev.filter((c) => c.id !== id));
+  };
 
   return (
     <Ctx.Provider
       value={{
+        loading,
         customers,
         products,
         orders,
         suppliers,
         purchases,
+        refresh,
         addOrder,
         updateOrder,
         deleteOrder,
