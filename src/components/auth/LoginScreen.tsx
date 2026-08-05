@@ -6,8 +6,9 @@ import { cn } from "@/lib/utils";
 type Mode = "login" | "signup" | "reset";
 
 export function LoginScreen() {
-  const { login, signup, getQuestion, resetPassword, users } = useAuth();
-  const [mode, setMode] = useState<Mode>(users.length === 0 ? "signup" : "login");
+  const { login, signup, getQuestion, resetPassword } = useAuth();
+  const [mode, setMode] = useState<Mode>("login");
+
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -64,16 +65,24 @@ export function LoginScreen() {
     }
   };
 
-  const lookupQuestion = () => {
+  const lookupQuestion = async () => {
     reset();
-    const q = getQuestion(username);
-    if (!q) {
-      setError("Usuário não encontrado.");
-      setResetQuestion(null);
-      return;
+    setBusy(true);
+    try {
+      const q = await getQuestion(username);
+      if (!q) {
+        setError("Usuário não encontrado.");
+        setResetQuestion(null);
+        return;
+      }
+      setResetQuestion(q);
+    } catch {
+      setError("Não foi possível buscar a pergunta. Tente de novo.");
+    } finally {
+      setBusy(false);
     }
-    setResetQuestion(q);
   };
+
 
   const onReset = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -141,18 +150,17 @@ export function LoginScreen() {
             >
               {busy ? "Entrando…" : "Entrar"}
             </button>
-            {users.length === 0 && (
-              <p className="text-xs text-muted-foreground text-center">
-                Nenhum usuário ainda. Crie o primeiro na aba <b>Criar</b>.
-              </p>
-            )}
+            <p className="text-xs text-muted-foreground text-center">
+              Sua conta funciona em qualquer celular. Ainda não tem? Crie na aba <b>Criar</b>.
+            </p>
+
           </form>
         )}
 
         {mode === "signup" && (
           <form onSubmit={onSignup} className="bg-surface-elevated border border-border rounded-xl p-5 space-y-3">
             <Field label="Usuário" value={username} onChange={setUsername} autoFocus />
-            <Field label="Senha (mín. 4 caracteres)" value={password} onChange={setPassword} type="password" />
+            <Field label="Senha (mín. 6 caracteres)" value={password} onChange={setPassword} type="password" />
             <Field
               label="Pergunta de recuperação"
               value={question}
