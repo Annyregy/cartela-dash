@@ -150,11 +150,10 @@ export function LoginScreen() {
             >
               {busy ? "Entrando…" : "Entrar"}
             </button>
-            {users.length === 0 && (
-              <p className="text-xs text-muted-foreground text-center">
-                Nenhum usuário ainda. Crie o primeiro na aba <b>Criar</b>.
-              </p>
-            )}
+            <p className="text-xs text-muted-foreground text-center">
+              Sua conta funciona em qualquer celular. Ainda não tem? Crie na aba <b>Criar</b>.
+            </p>
+
           </form>
         )}
 
