@@ -14,7 +14,213 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      customers: {
+        Row: {
+          address: string
+          code: number | null
+          created_at: string
+          id: string
+          name: string
+          neighborhood: string
+          phone: string
+        }
+        Insert: {
+          address?: string
+          code?: number | null
+          created_at?: string
+          id: string
+          name?: string
+          neighborhood?: string
+          phone?: string
+        }
+        Update: {
+          address?: string
+          code?: number | null
+          created_at?: string
+          id?: string
+          name?: string
+          neighborhood?: string
+          phone?: string
+        }
+        Relationships: []
+      }
+      orders: {
+        Row: {
+          address: string
+          created_at: string
+          customer_code: number | null
+          customer_id: string
+          customer_name: string
+          delivery_status: string
+          discount_percent: number | null
+          discount_value: number | null
+          id: string
+          items: Json
+          neighborhood: string
+          paid_amount: number
+          payment_method: string
+          payment_status: string
+          phone: string
+          subtotal: number | null
+          surcharge_percent: number | null
+          surcharge_value: number | null
+          total: number
+        }
+        Insert: {
+          address?: string
+          created_at?: string
+          customer_code?: number | null
+          customer_id?: string
+          customer_name?: string
+          delivery_status?: string
+          discount_percent?: number | null
+          discount_value?: number | null
+          id: string
+          items?: Json
+          neighborhood?: string
+          paid_amount?: number
+          payment_method?: string
+          payment_status?: string
+          phone?: string
+          subtotal?: number | null
+          surcharge_percent?: number | null
+          surcharge_value?: number | null
+          total?: number
+        }
+        Update: {
+          address?: string
+          created_at?: string
+          customer_code?: number | null
+          customer_id?: string
+          customer_name?: string
+          delivery_status?: string
+          discount_percent?: number | null
+          discount_value?: number | null
+          id?: string
+          items?: Json
+          neighborhood?: string
+          paid_amount?: number
+          payment_method?: string
+          payment_status?: string
+          phone?: string
+          subtotal?: number | null
+          surcharge_percent?: number | null
+          surcharge_value?: number | null
+          total?: number
+        }
+        Relationships: []
+      }
+      products: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          price: number
+          stock: number
+          unit: string
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          name?: string
+          price?: number
+          stock?: number
+          unit?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          price?: number
+          stock?: number
+          unit?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          answer_hash: string
+          created_at: string
+          id: string
+          question: string
+          username: string
+          username_norm: string
+        }
+        Insert: {
+          answer_hash?: string
+          created_at?: string
+          id: string
+          question?: string
+          username: string
+          username_norm: string
+        }
+        Update: {
+          answer_hash?: string
+          created_at?: string
+          id?: string
+          question?: string
+          username?: string
+          username_norm?: string
+        }
+        Relationships: []
+      }
+      purchases: {
+        Row: {
+          created_at: string
+          id: string
+          items: Json
+          notes: string
+          supplier_id: string
+          supplier_name: string
+          total: number
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          items?: Json
+          notes?: string
+          supplier_id?: string
+          supplier_name?: string
+          total?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          items?: Json
+          notes?: string
+          supplier_id?: string
+          supplier_name?: string
+          total?: number
+        }
+        Relationships: []
+      }
+      suppliers: {
+        Row: {
+          contact: string
+          created_at: string
+          id: string
+          name: string
+          notes: string
+          phone: string
+        }
+        Insert: {
+          contact?: string
+          created_at?: string
+          id: string
+          name?: string
+          notes?: string
+          phone?: string
+        }
+        Update: {
+          contact?: string
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string
+          phone?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
