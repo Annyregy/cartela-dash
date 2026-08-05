@@ -160,7 +160,7 @@ export function LoginScreen() {
         {mode === "signup" && (
           <form onSubmit={onSignup} className="bg-surface-elevated border border-border rounded-xl p-5 space-y-3">
             <Field label="Usuário" value={username} onChange={setUsername} autoFocus />
-            <Field label="Senha (mín. 4 caracteres)" value={password} onChange={setPassword} type="password" />
+            <Field label="Senha (mín. 6 caracteres)" value={password} onChange={setPassword} type="password" />
             <Field
               label="Pergunta de recuperação"
               value={question}
