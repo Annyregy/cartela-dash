@@ -65,16 +65,24 @@ export function LoginScreen() {
     }
   };
 
-  const lookupQuestion = () => {
+  const lookupQuestion = async () => {
     reset();
-    const q = getQuestion(username);
-    if (!q) {
-      setError("Usuário não encontrado.");
-      setResetQuestion(null);
-      return;
+    setBusy(true);
+    try {
+      const q = await getQuestion(username);
+      if (!q) {
+        setError("Usuário não encontrado.");
+        setResetQuestion(null);
+        return;
+      }
+      setResetQuestion(q);
+    } catch {
+      setError("Não foi possível buscar a pergunta. Tente de novo.");
+    } finally {
+      setBusy(false);
     }
-    setResetQuestion(q);
   };
+
 
   const onReset = async (e: React.FormEvent) => {
     e.preventDefault();
