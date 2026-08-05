@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Egg, KeyRound, LogIn, UserPlus } from "lucide-react";
+import { Egg, Eye, EyeOff, KeyRound, LogIn, UserPlus } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
