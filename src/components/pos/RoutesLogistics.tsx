@@ -127,12 +127,20 @@ function OrderCard({ order, onComplete }: { order: Order; onComplete: () => void
         <span className="text-gold font-bold text-xl tabular-nums">{formatBRL(order.total)}</span>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 pt-1">
+      <div className="grid grid-cols-3 gap-2 pt-1">
+        <button
+          type="button"
+          onClick={() => openExternalUrl(mapsUrl)}
+          className="flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-muted text-foreground font-medium border border-border hover:border-gold/50 transition text-sm"
+        >
+          <Navigation className="size-4" />
+          Maps
+        </button>
         <a
           href={whatsappLink(order.phone, waMsg)}
           target="_blank"
           rel="noreferrer"
-          className="flex items-center justify-center gap-2 py-2.5 rounded-lg bg-muted text-foreground font-medium border border-border hover:border-gold/50 transition"
+          className="flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-muted text-foreground font-medium border border-border hover:border-gold/50 transition text-sm"
         >
           <MessageCircle className="size-4" />
           WhatsApp
