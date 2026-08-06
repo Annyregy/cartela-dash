@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
-import { CheckCircle2, MapPin, MessageCircle, Phone } from "lucide-react";
+import { CheckCircle2, MapPin, MessageCircle, Navigation, Phone } from "lucide-react";
 import { NEIGHBORHOODS } from "@/lib/pos-data";
 import { formatBRL, usePos, whatsappLink, type Order } from "@/lib/pos-store";
+import { openExternalUrl } from "@/lib/browser-actions";
 import { cn } from "@/lib/utils";
 
 export function RoutesLogistics() {
@@ -78,6 +79,11 @@ function OrderCard({ order, onComplete }: { order: Order; onComplete: () => void
   const summary = order.items.map((i) => `${i.quantity}x ${i.name}`).join(", ");
   const waMsg = `Olá ${order.customerName}, seu pedido de ovos já está na rota de entrega e chega em breve!`;
   const isPaid = order.paymentStatus === "Pago";
+  const mapsQuery = [order.address, order.neighborhood, "São Sebastião, SP"]
+    .filter(Boolean)
+    .join(", ");
+  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery)}`;
+
 
   return (
     <div className="rounded-xl bg-surface border border-border p-4 space-y-3">
@@ -86,10 +92,14 @@ function OrderCard({ order, onComplete }: { order: Order; onComplete: () => void
           <div className="text-foreground font-bold text-lg leading-tight">
             {order.customerName}
           </div>
-          <div className="text-sm text-muted-foreground flex items-center gap-1.5 mt-1">
+          <button
+            type="button"
+            onClick={() => openExternalUrl(mapsUrl)}
+            className="text-sm text-muted-foreground flex items-center gap-1.5 mt-1 hover:text-gold text-left max-w-full"
+          >
             <MapPin className="size-3.5 shrink-0" />
-            <span className="truncate">{order.address}</span>
-          </div>
+            <span className="truncate underline decoration-dotted">{order.address}</span>
+          </button>
           <a
             href={`tel:${order.phone}`}
             className="text-sm text-muted-foreground flex items-center gap-1.5 mt-0.5 hover:text-foreground"
@@ -117,19 +127,27 @@ function OrderCard({ order, onComplete }: { order: Order; onComplete: () => void
         <span className="text-gold font-bold text-xl tabular-nums">{formatBRL(order.total)}</span>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 pt-1">
+      <div className="grid grid-cols-3 gap-2 pt-1">
+        <button
+          type="button"
+          onClick={() => openExternalUrl(mapsUrl)}
+          className="flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-muted text-foreground font-medium border border-border hover:border-gold/50 transition text-sm"
+        >
+          <Navigation className="size-4" />
+          Maps
+        </button>
         <a
           href={whatsappLink(order.phone, waMsg)}
           target="_blank"
           rel="noreferrer"
-          className="flex items-center justify-center gap-2 py-2.5 rounded-lg bg-muted text-foreground font-medium border border-border hover:border-gold/50 transition"
+          className="flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-muted text-foreground font-medium border border-border hover:border-gold/50 transition text-sm"
         >
           <MessageCircle className="size-4" />
           WhatsApp
         </a>
         <button
           onClick={onComplete}
-          className="flex items-center justify-center gap-2 py-2.5 rounded-lg bg-dull-blue text-dull-blue-foreground font-semibold hover:opacity-90 transition"
+          className="flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-dull-blue text-dull-blue-foreground font-semibold hover:opacity-90 transition text-sm"
         >
           <CheckCircle2 className="size-4" />
           Concluir
