@@ -1,5 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { migrateLocalDataToCloud } from "./local-migration";
 import {
   type CartItem,
   type Customer,
@@ -18,7 +20,7 @@ type State = {
   orders: Order[];
   suppliers: Supplier[];
   purchases: Purchase[];
-  refresh: () => Promise<void>;
+  refresh: () => Promise<unknown>;
   addOrder: (o: Omit<Order, "id" | "createdAt">) => Order;
   updateOrder: (id: string, patch: Partial<Omit<Order, "id" | "createdAt" | "customerId">>) => void;
   deleteOrder: (id: string) => void;
