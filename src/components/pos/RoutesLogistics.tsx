@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
-import { CheckCircle2, MapPin, MessageCircle, Phone } from "lucide-react";
+import { CheckCircle2, MapPin, MessageCircle, Navigation, Phone } from "lucide-react";
 import { NEIGHBORHOODS } from "@/lib/pos-data";
 import { formatBRL, usePos, whatsappLink, type Order } from "@/lib/pos-store";
+import { openExternalUrl } from "@/lib/browser-actions";
 import { cn } from "@/lib/utils";
 
 export function RoutesLogistics() {
@@ -78,6 +79,11 @@ function OrderCard({ order, onComplete }: { order: Order; onComplete: () => void
   const summary = order.items.map((i) => `${i.quantity}x ${i.name}`).join(", ");
   const waMsg = `Olá ${order.customerName}, seu pedido de ovos já está na rota de entrega e chega em breve!`;
   const isPaid = order.paymentStatus === "Pago";
+  const mapsQuery = [order.address, order.neighborhood, "São Sebastião, SP"]
+    .filter(Boolean)
+    .join(", ");
+  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery)}`;
+
 
   return (
     <div className="rounded-xl bg-surface border border-border p-4 space-y-3">
