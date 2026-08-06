@@ -1,5 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { migrateLocalDataToCloud } from "./local-migration";
 import {
   type CartItem,
   type Customer,
@@ -18,7 +20,7 @@ type State = {
   orders: Order[];
   suppliers: Supplier[];
   purchases: Purchase[];
-  refresh: () => Promise<void>;
+  refresh: () => Promise<unknown>;
   addOrder: (o: Omit<Order, "id" | "createdAt">) => Order;
   updateOrder: (id: string, patch: Partial<Omit<Order, "id" | "createdAt" | "customerId">>) => void;
   deleteOrder: (id: string) => void;
@@ -222,10 +224,41 @@ export function PosProvider({ children }: { children: ReactNode }) {
     if (o.data) setOrders((o.data as Row[]).map(toOrder));
     if (b.data) setPurchases((b.data as Row[]).map(toPurchase));
     setLoading(false);
+    return {
+      customerIds: new Set((c.data as Row[] | null)?.map((r) => str(r['id'])) ?? []),
+      productIds: new Set((p.data as Row[] | null)?.map((r) => str(r['id'])) ?? []),
+      supplierIds: new Set((s.data as Row[] | null)?.map((r) => str(r['id'])) ?? []),
+      orderIds: new Set((o.data as Row[] | null)?.map((r) => str(r['id'])) ?? []),
+      purchaseIds: new Set((b.data as Row[] | null)?.map((r) => str(r['id'])) ?? []),
+    };
   };
 
   useEffect(() => {
-    void refresh();
+    let cancelled = false;
+    void (async () => {
+      const cloudIds = await refresh();
+      if (cancelled) return;
+      try {
+        const { migrated, counts } = await migrateLocalDataToCloud(cloudIds);
+        if (cancelled || !migrated) return;
+        await refresh();
+        const parts = [
+          counts.orders ? `${counts.orders} pedido(s)` : "",
+          counts.customers ? `${counts.customers} cliente(s)` : "",
+          counts.products ? `${counts.products} produto(s)` : "",
+          counts.suppliers ? `${counts.suppliers} fornecedor(es)` : "",
+          counts.purchases ? `${counts.purchases} compra(s)` : "",
+        ].filter(Boolean);
+        toast.success("Dados deste aparelho enviados para a nuvem", {
+          description: parts.join(", "),
+        });
+      } catch (e) {
+        console.error("[migração] falha", e);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
