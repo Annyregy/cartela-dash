@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Toaster } from "@/components/ui/sonner";
 import {
   Outlet,
   Link,
@@ -115,6 +116,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
       </head>
       <body translate="no" className="notranslate">
         {children}
+        <Toaster position="top-center" richColors />
         <Scripts />
       </body>
     </html>
