@@ -147,7 +147,7 @@ function OrderCard({ order, onComplete }: { order: Order; onComplete: () => void
         </a>
         <button
           onClick={onComplete}
-          className="flex items-center justify-center gap-2 py-2.5 rounded-lg bg-dull-blue text-dull-blue-foreground font-semibold hover:opacity-90 transition"
+          className="flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-dull-blue text-dull-blue-foreground font-semibold hover:opacity-90 transition text-sm"
         >
           <CheckCircle2 className="size-4" />
           Concluir
