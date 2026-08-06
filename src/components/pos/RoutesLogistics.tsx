@@ -92,10 +92,14 @@ function OrderCard({ order, onComplete }: { order: Order; onComplete: () => void
           <div className="text-foreground font-bold text-lg leading-tight">
             {order.customerName}
           </div>
-          <div className="text-sm text-muted-foreground flex items-center gap-1.5 mt-1">
+          <button
+            type="button"
+            onClick={() => openExternalUrl(mapsUrl)}
+            className="text-sm text-muted-foreground flex items-center gap-1.5 mt-1 hover:text-gold text-left max-w-full"
+          >
             <MapPin className="size-3.5 shrink-0" />
-            <span className="truncate">{order.address}</span>
-          </div>
+            <span className="truncate underline decoration-dotted">{order.address}</span>
+          </button>
           <a
             href={`tel:${order.phone}`}
             className="text-sm text-muted-foreground flex items-center gap-1.5 mt-0.5 hover:text-foreground"
