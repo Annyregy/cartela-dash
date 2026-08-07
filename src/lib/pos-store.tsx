@@ -25,7 +25,7 @@ type State = {
   updateOrder: (id: string, patch: Partial<Omit<Order, "id" | "createdAt" | "customerId">>) => void;
   deleteOrder: (id: string) => void;
   completeDelivery: (id: string) => void;
-  setDeliveryNote: (id: string, note: string) => void;
+  setDeliveryNote: (id: string, note: string, saveToCustomer?: boolean) => void;
   markPaid: (id: string) => void;
   markUnpaid: (id: string) => void;
   addPartialPayment: (id: string, amount: number) => void;
@@ -59,6 +59,7 @@ const toCustomer = (r: Row): Customer => ({
   phone: str(r['phone']),
   address: str(r['address']),
   neighborhood: str(r['neighborhood']),
+  note: str(r['note']),
 });
 
 const customerRow = (c: Partial<Customer> & { id?: string }) => ({
@@ -68,6 +69,7 @@ const customerRow = (c: Partial<Customer> & { id?: string }) => ({
   ...(c.phone !== undefined ? { phone: c.phone } : {}),
   ...(c.address !== undefined ? { address: c.address } : {}),
   ...(c.neighborhood !== undefined ? { neighborhood: c.neighborhood } : {}),
+  ...(c.note !== undefined ? { note: c.note } : {}),
 });
 
 const toProduct = (r: Row): Product => ({
@@ -324,10 +326,18 @@ export function PosProvider({ children }: { children: ReactNode }) {
     setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, deliveryStatus: "concluido" } : o)));
   };
 
-  const setDeliveryNote: State["setDeliveryNote"] = (id, note) => {
+  const setDeliveryNote: State["setDeliveryNote"] = (id, note, saveToCustomer = true) => {
     const value = String(note ?? "");
     patch("orders", id, { delivery_note: value });
     setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, deliveryNote: value } : o)));
+    if (saveToCustomer) {
+      const order = ordersRef.current.find((o) => o.id === id);
+      const customerId = order?.customerId;
+      if (customerId) {
+        patch("customers", customerId, { note: value });
+        setCustomers((prev) => prev.map((c) => (c.id === customerId ? { ...c, note: value } : c)));
+      }
+    }
   };
 
 
