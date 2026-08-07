@@ -256,6 +256,26 @@ export function NewOrder() {
           )}
         </div>
 
+        {/* Delivery note (saved per customer) */}
+        {customer && (
+          <div className="rounded-xl bg-surface border border-border p-4">
+            <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
+              Observação para o entregador
+            </label>
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              rows={2}
+              placeholder="Ex.: portão azul, deixar com o vizinho, ligar ao chegar..."
+              className="mt-2 w-full rounded-lg bg-input border border-border p-2.5 text-sm text-foreground outline-none focus:border-gold resize-none"
+            />
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              Fica salva neste cliente e vem preenchida no próximo pedido.
+            </p>
+          </div>
+        )}
+
+
         {/* Customer picker overlay (works on mobile + desktop) */}
         {openCustomer && (
           <div
@@ -307,6 +327,7 @@ export function NewOrder() {
                         const c = filteredCustomers[highlightIdx];
                         if (c) {
                           setCustomer(c);
+                          setNote(c.note ?? "");
                           setOpenCustomer(false);
                           setQuery("");
                         }
@@ -352,6 +373,7 @@ export function NewOrder() {
                       onMouseEnter={() => setHighlightIdx(idx)}
                       onClick={() => {
                         setCustomer(c);
+                          setNote(c.note ?? "");
                         setOpenCustomer(false);
                         setQuery("");
                       }}
