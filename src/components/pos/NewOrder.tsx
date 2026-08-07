@@ -22,7 +22,7 @@ const searchText = (value: unknown) => {
 };
 
 export function NewOrder() {
-  const { customers, products, addOrder } = usePos();
+  const { customers, products, addOrder, updateCustomer } = usePos();
   const [query, setQuery] = useState("");
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [openCustomer, setOpenCustomer] = useState(false);
@@ -34,6 +34,7 @@ export function NewOrder() {
   const [discountValue, setDiscountValue] = useState("");
   const [surchargePercent, setSurchargePercent] = useState("");
   const [surchargeValue, setSurchargeValue] = useState("");
+  const [note, setNote] = useState("");
   const [highlightIdx, setHighlightIdx] = useState(0);
   const listRef = useRef<HTMLDivElement | null>(null);
 
@@ -98,6 +99,7 @@ export function NewOrder() {
   const reset = useCallback(() => {
     setCart({});
     setCustomer(null);
+    setNote("");
     setStatus("Pendente");
     setPayment("Pix");
     setDiscountPercent("");
@@ -130,7 +132,11 @@ export function NewOrder() {
         paymentMethod: payment,
         paymentStatus: status,
         deliveryStatus: "ativo",
+        deliveryNote: note.trim(),
       });
+      if (note.trim() !== (customer.note ?? "")) {
+        updateCustomer(customer.id, { note: note.trim() });
+      }
       if (sendWhatsapp) {
         openExternalUrl(whatsappLink(customer.phone, buildReceipt(order)));
       }
@@ -140,6 +146,8 @@ export function NewOrder() {
     }
   }, [
     addOrder,
+    updateCustomer,
+    note,
     cartItems,
     customer,
     discountPercentNumber,
@@ -248,6 +256,26 @@ export function NewOrder() {
           )}
         </div>
 
+        {/* Delivery note (saved per customer) */}
+        {customer && (
+          <div className="rounded-xl bg-surface border border-border p-4">
+            <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
+              Observação para o entregador
+            </label>
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              rows={2}
+              placeholder="Ex.: portão azul, deixar com o vizinho, ligar ao chegar..."
+              className="mt-2 w-full rounded-lg bg-input border border-border p-2.5 text-sm text-foreground outline-none focus:border-gold resize-none"
+            />
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              Fica salva neste cliente e vem preenchida no próximo pedido.
+            </p>
+          </div>
+        )}
+
+
         {/* Customer picker overlay (works on mobile + desktop) */}
         {openCustomer && (
           <div
@@ -299,6 +327,7 @@ export function NewOrder() {
                         const c = filteredCustomers[highlightIdx];
                         if (c) {
                           setCustomer(c);
+                          setNote(c.note ?? "");
                           setOpenCustomer(false);
                           setQuery("");
                         }
@@ -344,6 +373,7 @@ export function NewOrder() {
                       onMouseEnter={() => setHighlightIdx(idx)}
                       onClick={() => {
                         setCustomer(c);
+                          setNote(c.note ?? "");
                         setOpenCustomer(false);
                         setQuery("");
                       }}

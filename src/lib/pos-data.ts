@@ -5,6 +5,7 @@ export type Customer = {
   phone: string;
   address: string;
   neighborhood: string;
+  note?: string;
 };
 
 export type Product = {
