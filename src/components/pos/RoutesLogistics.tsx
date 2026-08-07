@@ -84,7 +84,15 @@ const EMBED_KEY = import.meta.env['VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KE
   | string
   | undefined;
 
-function OrderCard({ order, onComplete }: { order: Order; onComplete: () => void }) {
+function OrderCard({
+  order,
+  onComplete,
+  onSaveNote,
+}: {
+  order: Order;
+  onComplete: () => void;
+  onSaveNote: (note: string) => void;
+}) {
   const summary = order.items.map((i) => `${i.quantity}x ${i.name}`).join(", ");
   const waMsg = `Olá ${order.customerName}, seu pedido de ovos já está na rota de entrega e chega em breve!`;
   const isPaid = order.paymentStatus === "Pago";
@@ -96,6 +104,10 @@ function OrderCard({ order, onComplete }: { order: Order; onComplete: () => void
     ? `https://www.google.com/maps/embed/v1/place?key=${EMBED_KEY}&q=${encodeURIComponent(mapsQuery)}&zoom=16`
     : null;
   const [showMap, setShowMap] = useState(false);
+  const [editingNote, setEditingNote] = useState(false);
+  const [noteDraft, setNoteDraft] = useState(order.deliveryNote ?? "");
+  const note = order.deliveryNote ?? "";
+
 
 
 
