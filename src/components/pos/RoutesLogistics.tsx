@@ -75,6 +75,10 @@ export function RoutesLogistics() {
   );
 }
 
+const EMBED_KEY = import.meta.env['VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY'] as
+  | string
+  | undefined;
+
 function OrderCard({ order, onComplete }: { order: Order; onComplete: () => void }) {
   const summary = order.items.map((i) => `${i.quantity}x ${i.name}`).join(", ");
   const waMsg = `Olá ${order.customerName}, seu pedido de ovos já está na rota de entrega e chega em breve!`;
@@ -83,6 +87,12 @@ function OrderCard({ order, onComplete }: { order: Order; onComplete: () => void
     .filter(Boolean)
     .join(", ");
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery)}`;
+  const embedUrl = EMBED_KEY
+    ? `https://www.google.com/maps/embed/v1/place?key=${EMBED_KEY}&q=${encodeURIComponent(mapsQuery)}&zoom=16`
+    : null;
+  const [showMap, setShowMap] = useState(false);
+
+
 
 
   return (
@@ -127,14 +137,45 @@ function OrderCard({ order, onComplete }: { order: Order; onComplete: () => void
         <span className="text-gold font-bold text-xl tabular-nums">{formatBRL(order.total)}</span>
       </div>
 
+      {showMap && (
+        <div className="rounded-lg overflow-hidden border border-border">
+          {embedUrl ? (
+            <iframe
+              title={`Mapa de ${order.customerName}`}
+              src={embedUrl}
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              className="w-full h-56 border-0"
+              allowFullScreen
+            />
+          ) : (
+            <div className="p-4 text-sm text-muted-foreground text-center">
+              Mapa indisponível no momento.
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={() => openExternalUrl(mapsUrl)}
+            className="w-full py-2 text-sm font-medium text-gold bg-muted hover:bg-muted/70 transition"
+          >
+            Abrir no Google Maps
+          </button>
+        </div>
+      )}
+
       <div className="grid grid-cols-3 gap-2 pt-1">
         <button
           type="button"
-          onClick={() => openExternalUrl(mapsUrl)}
-          className="flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-muted text-foreground font-medium border border-border hover:border-gold/50 transition text-sm"
+          onClick={() => setShowMap((v) => !v)}
+          className={cn(
+            "flex items-center justify-center gap-1.5 py-2.5 rounded-lg font-medium border transition text-sm",
+            showMap
+              ? "bg-gold text-gold-foreground border-gold"
+              : "bg-muted text-foreground border-border hover:border-gold/50"
+          )}
         >
           <Navigation className="size-4" />
-          Maps
+          {showMap ? "Ocultar" : "Mapa"}
         </button>
         <a
           href={whatsappLink(order.phone, waMsg)}
