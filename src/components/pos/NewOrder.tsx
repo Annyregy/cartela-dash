@@ -22,7 +22,7 @@ const searchText = (value: unknown) => {
 };
 
 export function NewOrder() {
-  const { customers, products, addOrder } = usePos();
+  const { customers, products, addOrder, updateCustomer } = usePos();
   const [query, setQuery] = useState("");
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [openCustomer, setOpenCustomer] = useState(false);
@@ -34,6 +34,7 @@ export function NewOrder() {
   const [discountValue, setDiscountValue] = useState("");
   const [surchargePercent, setSurchargePercent] = useState("");
   const [surchargeValue, setSurchargeValue] = useState("");
+  const [note, setNote] = useState("");
   const [highlightIdx, setHighlightIdx] = useState(0);
   const listRef = useRef<HTMLDivElement | null>(null);
 
@@ -98,6 +99,7 @@ export function NewOrder() {
   const reset = useCallback(() => {
     setCart({});
     setCustomer(null);
+    setNote("");
     setStatus("Pendente");
     setPayment("Pix");
     setDiscountPercent("");
@@ -130,7 +132,11 @@ export function NewOrder() {
         paymentMethod: payment,
         paymentStatus: status,
         deliveryStatus: "ativo",
+        deliveryNote: note.trim(),
       });
+      if (note.trim() !== (customer.note ?? "")) {
+        updateCustomer(customer.id, { note: note.trim() });
+      }
       if (sendWhatsapp) {
         openExternalUrl(whatsappLink(customer.phone, buildReceipt(order)));
       }
@@ -140,6 +146,8 @@ export function NewOrder() {
     }
   }, [
     addOrder,
+    updateCustomer,
+    note,
     cartItems,
     customer,
     discountPercentNumber,

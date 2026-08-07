@@ -331,7 +331,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
     patch("orders", id, { delivery_note: value });
     setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, deliveryNote: value } : o)));
     if (saveToCustomer) {
-      const order = ordersRef.current.find((o) => o.id === id);
+      const order = orders.find((o) => o.id === id);
       const customerId = order?.customerId;
       if (customerId) {
         patch("customers", customerId, { note: value });
