@@ -75,6 +75,10 @@ export function RoutesLogistics() {
   );
 }
 
+const EMBED_KEY = import.meta.env['VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY'] as
+  | string
+  | undefined;
+
 function OrderCard({ order, onComplete }: { order: Order; onComplete: () => void }) {
   const summary = order.items.map((i) => `${i.quantity}x ${i.name}`).join(", ");
   const waMsg = `Olá ${order.customerName}, seu pedido de ovos já está na rota de entrega e chega em breve!`;
@@ -83,6 +87,12 @@ function OrderCard({ order, onComplete }: { order: Order; onComplete: () => void
     .filter(Boolean)
     .join(", ");
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery)}`;
+  const embedUrl = EMBED_KEY
+    ? `https://www.google.com/maps/embed/v1/place?key=${EMBED_KEY}&q=${encodeURIComponent(mapsQuery)}&zoom=16`
+    : null;
+  const [showMap, setShowMap] = useState(false);
+
+
 
 
   return (
