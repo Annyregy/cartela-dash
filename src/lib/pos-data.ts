@@ -46,6 +46,7 @@ export type Order = {
   paymentStatus: PaymentStatus;
   paidAmount?: number;
   deliveryStatus: DeliveryStatus;
+  deliveryNote?: string;
   createdAt: string;
 };
 
