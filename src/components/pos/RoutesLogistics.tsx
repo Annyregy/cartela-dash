@@ -154,6 +154,60 @@ function OrderCard({
         <span className="text-gold font-bold text-xl tabular-nums">{formatBRL(order.total)}</span>
       </div>
 
+      <div className="rounded-lg bg-muted/50 border border-border p-3 space-y-2">
+        <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
+          <StickyNote className="size-3.5" />
+          Observação para o entregador
+        </div>
+        {editingNote ? (
+          <>
+            <textarea
+              value={noteDraft}
+              onChange={(e) => setNoteDraft(e.target.value)}
+              rows={3}
+              placeholder="Ex.: portão azul, deixar com o vizinho, ligar ao chegar..."
+              className="w-full rounded-md bg-background border border-border p-2 text-sm text-foreground outline-none focus:border-gold resize-none"
+            />
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setNoteDraft(note);
+                  setEditingNote(false);
+                }}
+                className="py-2 rounded-md bg-muted text-foreground text-sm font-medium border border-border"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onSaveNote(noteDraft.trim());
+                  setEditingNote(false);
+                }}
+                className="py-2 rounded-md bg-gold text-gold-foreground text-sm font-semibold"
+              >
+                Salvar
+              </button>
+            </div>
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              setNoteDraft(note);
+              setEditingNote(true);
+            }}
+            className="w-full text-left text-sm text-foreground/90 hover:text-gold transition"
+          >
+            {note || (
+              <span className="text-muted-foreground italic">Adicionar comentário…</span>
+            )}
+          </button>
+        )}
+      </div>
+
+
       {showMap && (
         <div className="rounded-lg overflow-hidden border border-border">
           {embedUrl ? (
