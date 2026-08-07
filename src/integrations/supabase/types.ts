@@ -51,6 +51,7 @@ export type Database = {
           customer_code: number | null
           customer_id: string
           customer_name: string
+          delivery_note: string
           delivery_status: string
           discount_percent: number | null
           discount_value: number | null
@@ -72,6 +73,7 @@ export type Database = {
           customer_code?: number | null
           customer_id?: string
           customer_name?: string
+          delivery_note?: string
           delivery_status?: string
           discount_percent?: number | null
           discount_value?: number | null
@@ -93,6 +95,7 @@ export type Database = {
           customer_code?: number | null
           customer_id?: string
           customer_name?: string
+          delivery_note?: string
           delivery_status?: string
           discount_percent?: number | null
           discount_value?: number | null

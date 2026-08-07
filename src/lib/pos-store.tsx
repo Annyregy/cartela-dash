@@ -25,6 +25,7 @@ type State = {
   updateOrder: (id: string, patch: Partial<Omit<Order, "id" | "createdAt" | "customerId">>) => void;
   deleteOrder: (id: string) => void;
   completeDelivery: (id: string) => void;
+  setDeliveryNote: (id: string, note: string) => void;
   markPaid: (id: string) => void;
   markUnpaid: (id: string) => void;
   addPartialPayment: (id: string, amount: number) => void;
@@ -120,6 +121,7 @@ const toOrder = (r: Row): Order => ({
   paymentStatus: (str(r['payment_status']) || "Pendente") as PaymentStatus,
   paidAmount: num(r['paid_amount']),
   deliveryStatus: (str(r['delivery_status']) || "ativo") as Order["deliveryStatus"],
+  deliveryNote: str(r['delivery_note']),
   createdAt: str(r['created_at']),
 });
 
@@ -142,6 +144,7 @@ const orderRow = (o: Partial<Order> & { id?: string }) => ({
   ...(o.paymentStatus !== undefined ? { payment_status: o.paymentStatus } : {}),
   ...(o.paidAmount !== undefined ? { paid_amount: o.paidAmount } : {}),
   ...(o.deliveryStatus !== undefined ? { delivery_status: o.deliveryStatus } : {}),
+  ...(o.deliveryNote !== undefined ? { delivery_note: o.deliveryNote } : {}),
   ...(o.createdAt !== undefined ? { created_at: o.createdAt } : {}),
 });
 
@@ -321,6 +324,13 @@ export function PosProvider({ children }: { children: ReactNode }) {
     setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, deliveryStatus: "concluido" } : o)));
   };
 
+  const setDeliveryNote: State["setDeliveryNote"] = (id, note) => {
+    const value = String(note ?? "");
+    patch("orders", id, { delivery_note: value });
+    setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, deliveryNote: value } : o)));
+  };
+
+
   const markPaid: State["markPaid"] = (id) =>
     setOrders((prev) =>
       prev.map((o) => {
@@ -443,6 +453,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
         updateOrder,
         deleteOrder,
         completeDelivery,
+        setDeliveryNote,
         markPaid,
         markUnpaid,
         addPartialPayment,

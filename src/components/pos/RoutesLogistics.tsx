@@ -1,12 +1,12 @@
 import { useMemo, useState } from "react";
-import { CheckCircle2, MapPin, MessageCircle, Navigation, Phone } from "lucide-react";
+import { CheckCircle2, MapPin, MessageCircle, Navigation, Phone, StickyNote } from "lucide-react";
 import { NEIGHBORHOODS } from "@/lib/pos-data";
 import { formatBRL, usePos, whatsappLink, type Order } from "@/lib/pos-store";
 import { openExternalUrl } from "@/lib/browser-actions";
 import { cn } from "@/lib/utils";
 
 export function RoutesLogistics() {
-  const { orders, completeDelivery } = usePos();
+  const { orders, completeDelivery, setDeliveryNote } = usePos();
   const [neighborhood, setNeighborhood] = useState<string>(NEIGHBORHOODS[0]);
 
   const active = useMemo(
@@ -68,7 +68,12 @@ export function RoutesLogistics() {
           </div>
         )}
         {filtered.map((o) => (
-          <OrderCard key={o.id} order={o} onComplete={() => completeDelivery(o.id)} />
+          <OrderCard
+            key={o.id}
+            order={o}
+            onComplete={() => completeDelivery(o.id)}
+            onSaveNote={(note) => setDeliveryNote(o.id, note)}
+          />
         ))}
       </div>
     </div>
@@ -79,7 +84,15 @@ const EMBED_KEY = import.meta.env['VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KE
   | string
   | undefined;
 
-function OrderCard({ order, onComplete }: { order: Order; onComplete: () => void }) {
+function OrderCard({
+  order,
+  onComplete,
+  onSaveNote,
+}: {
+  order: Order;
+  onComplete: () => void;
+  onSaveNote: (note: string) => void;
+}) {
   const summary = order.items.map((i) => `${i.quantity}x ${i.name}`).join(", ");
   const waMsg = `Olá ${order.customerName}, seu pedido de ovos já está na rota de entrega e chega em breve!`;
   const isPaid = order.paymentStatus === "Pago";
@@ -91,6 +104,10 @@ function OrderCard({ order, onComplete }: { order: Order; onComplete: () => void
     ? `https://www.google.com/maps/embed/v1/place?key=${EMBED_KEY}&q=${encodeURIComponent(mapsQuery)}&zoom=16`
     : null;
   const [showMap, setShowMap] = useState(false);
+  const [editingNote, setEditingNote] = useState(false);
+  const [noteDraft, setNoteDraft] = useState(order.deliveryNote ?? "");
+  const note = order.deliveryNote ?? "";
+
 
 
 
@@ -136,6 +153,60 @@ function OrderCard({ order, onComplete }: { order: Order; onComplete: () => void
         <span className="text-xs uppercase tracking-wider text-muted-foreground">Total</span>
         <span className="text-gold font-bold text-xl tabular-nums">{formatBRL(order.total)}</span>
       </div>
+
+      <div className="rounded-lg bg-muted/50 border border-border p-3 space-y-2">
+        <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
+          <StickyNote className="size-3.5" />
+          Observação para o entregador
+        </div>
+        {editingNote ? (
+          <>
+            <textarea
+              value={noteDraft}
+              onChange={(e) => setNoteDraft(e.target.value)}
+              rows={3}
+              placeholder="Ex.: portão azul, deixar com o vizinho, ligar ao chegar..."
+              className="w-full rounded-md bg-background border border-border p-2 text-sm text-foreground outline-none focus:border-gold resize-none"
+            />
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setNoteDraft(note);
+                  setEditingNote(false);
+                }}
+                className="py-2 rounded-md bg-muted text-foreground text-sm font-medium border border-border"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onSaveNote(noteDraft.trim());
+                  setEditingNote(false);
+                }}
+                className="py-2 rounded-md bg-gold text-gold-foreground text-sm font-semibold"
+              >
+                Salvar
+              </button>
+            </div>
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              setNoteDraft(note);
+              setEditingNote(true);
+            }}
+            className="w-full text-left text-sm text-foreground/90 hover:text-gold transition"
+          >
+            {note || (
+              <span className="text-muted-foreground italic">Adicionar comentário…</span>
+            )}
+          </button>
+        )}
+      </div>
+
 
       {showMap && (
         <div className="rounded-lg overflow-hidden border border-border">
