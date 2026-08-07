@@ -68,7 +68,12 @@ export function RoutesLogistics() {
           </div>
         )}
         {filtered.map((o) => (
-          <OrderCard key={o.id} order={o} onComplete={() => completeDelivery(o.id)} />
+          <OrderCard
+            key={o.id}
+            order={o}
+            onComplete={() => completeDelivery(o.id)}
+            onSaveNote={(note) => setDeliveryNote(o.id, note)}
+          />
         ))}
       </div>
     </div>
