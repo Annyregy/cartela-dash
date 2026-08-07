@@ -6,7 +6,7 @@ import { openExternalUrl } from "@/lib/browser-actions";
 import { cn } from "@/lib/utils";
 
 export function RoutesLogistics() {
-  const { orders, completeDelivery } = usePos();
+  const { orders, completeDelivery, setDeliveryNote } = usePos();
   const [neighborhood, setNeighborhood] = useState<string>(NEIGHBORHOODS[0]);
 
   const active = useMemo(
