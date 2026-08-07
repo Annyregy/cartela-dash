@@ -324,6 +324,13 @@ export function PosProvider({ children }: { children: ReactNode }) {
     setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, deliveryStatus: "concluido" } : o)));
   };
 
+  const setDeliveryNote: State["setDeliveryNote"] = (id, note) => {
+    const value = String(note ?? "");
+    patch("orders", id, { delivery_note: value });
+    setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, deliveryNote: value } : o)));
+  };
+
+
   const markPaid: State["markPaid"] = (id) =>
     setOrders((prev) =>
       prev.map((o) => {
