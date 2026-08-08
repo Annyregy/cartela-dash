@@ -4,6 +4,7 @@ import { NEIGHBORHOODS } from "@/lib/pos-data";
 import { formatBRL, usePos, whatsappLink, type Order } from "@/lib/pos-store";
 import { openExternalUrl } from "@/lib/browser-actions";
 import { NoteTemplates } from "@/components/pos/NoteTemplates";
+import { DeliveriesChart, type RouteStat } from "@/components/pos/DeliveriesChart";
 import { cn } from "@/lib/utils";
 
 const ALL = "Todos";
