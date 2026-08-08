@@ -35,11 +35,21 @@ export function RoutesLogistics() {
     };
     const list = orders.filter((o) => isToday(o.createdAt));
     const done = list.filter((o) => o.deliveryStatus === "concluido").length;
+    const byRoute: Record<string, RouteStat> = {};
+    for (const o of list) {
+      const name = o.neighborhood || "Sem rota";
+      const row = (byRoute[name] ??= { name, pendentes: 0, concluidas: 0 });
+      if (o.deliveryStatus === "concluido") row.concluidas += 1;
+      else row.pendentes += 1;
+    }
     return {
       total: list.length,
       done,
       pending: list.length - done,
       value: list.reduce((s, o) => s + (o.total || 0), 0),
+      byRoute: Object.values(byRoute).sort(
+        (a, b) => b.pendentes + b.concluidas - (a.pendentes + a.concluidas)
+      ),
     };
   }, [orders]);
 
