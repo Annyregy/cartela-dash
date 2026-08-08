@@ -3,6 +3,7 @@ import { CheckCircle2, MapPin, MessageCircle, Navigation, Phone, StickyNote } fr
 import { NEIGHBORHOODS } from "@/lib/pos-data";
 import { formatBRL, usePos, whatsappLink, type Order } from "@/lib/pos-store";
 import { openExternalUrl } from "@/lib/browser-actions";
+import { NoteTemplates } from "@/components/pos/NoteTemplates";
 import { cn } from "@/lib/utils";
 
 export function RoutesLogistics() {
