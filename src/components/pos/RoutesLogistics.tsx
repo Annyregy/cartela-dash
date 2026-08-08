@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { CheckCircle2, MapPin, MessageCircle, Navigation, Phone, StickyNote } from "lucide-react";
+import { CheckCircle2, MapPin, MessageCircle, Navigation, Phone, StickyNote, Truck } from "lucide-react";
 import { NEIGHBORHOODS } from "@/lib/pos-data";
 import { formatBRL, usePos, whatsappLink, type Order } from "@/lib/pos-store";
 import { openExternalUrl } from "@/lib/browser-actions";
