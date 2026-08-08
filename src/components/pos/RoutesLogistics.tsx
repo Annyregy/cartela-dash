@@ -115,7 +115,9 @@ export function RoutesLogistics() {
           <div className="rounded-xl bg-surface border border-border p-8 text-center">
             <div className="text-foreground font-semibold">Nenhum pedido ativo</div>
             <div className="text-sm text-muted-foreground mt-1">
-              Não há entregas pendentes em {neighborhood}.
+              {neighborhood === ALL
+                ? "Não há entregas pendentes."
+                : `Não há entregas pendentes em ${neighborhood}.`}
             </div>
           </div>
         )}
