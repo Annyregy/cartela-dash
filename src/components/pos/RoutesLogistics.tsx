@@ -1,14 +1,16 @@
 import { useMemo, useState } from "react";
-import { CheckCircle2, MapPin, MessageCircle, Navigation, Phone, StickyNote } from "lucide-react";
+import { CheckCircle2, MapPin, MessageCircle, Navigation, Phone, StickyNote, Truck } from "lucide-react";
 import { NEIGHBORHOODS } from "@/lib/pos-data";
 import { formatBRL, usePos, whatsappLink, type Order } from "@/lib/pos-store";
 import { openExternalUrl } from "@/lib/browser-actions";
 import { NoteTemplates } from "@/components/pos/NoteTemplates";
 import { cn } from "@/lib/utils";
 
+const ALL = "Todos";
+
 export function RoutesLogistics() {
   const { orders, completeDelivery, setDeliveryNote } = usePos();
-  const [neighborhood, setNeighborhood] = useState<string>(NEIGHBORHOODS[0]);
+  const [neighborhood, setNeighborhood] = useState<string>(ALL);
 
   const active = useMemo(
     () => orders.filter((o) => o.deliveryStatus === "ativo"),
@@ -21,22 +23,70 @@ export function RoutesLogistics() {
     return m;
   }, [active]);
 
-  const filtered = active.filter((o) => o.neighborhood === neighborhood);
+  const today = useMemo(() => {
+    const isToday = (iso: string) => {
+      const d = new Date(iso);
+      const n = new Date();
+      return (
+        d.getFullYear() === n.getFullYear() &&
+        d.getMonth() === n.getMonth() &&
+        d.getDate() === n.getDate()
+      );
+    };
+    const list = orders.filter((o) => isToday(o.createdAt));
+    const done = list.filter((o) => o.deliveryStatus === "concluido").length;
+    return {
+      total: list.length,
+      done,
+      pending: list.length - done,
+      value: list.reduce((s, o) => s + (o.total || 0), 0),
+    };
+  }, [orders]);
+
+  const filtered =
+    neighborhood === ALL ? active : active.filter((o) => o.neighborhood === neighborhood);
 
   return (
     <div className="space-y-5 pb-24 md:pb-8">
+      <div className="rounded-xl bg-surface border border-border p-4">
+        <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
+          <Truck className="size-3.5" />
+          Entregas de hoje
+        </div>
+        <div className="mt-3 grid grid-cols-4 gap-2 text-center">
+          <div>
+            <div className="text-gold font-bold text-xl tabular-nums">{today.total}</div>
+            <div className="text-[11px] text-muted-foreground">Total</div>
+          </div>
+          <div>
+            <div className="text-foreground font-bold text-xl tabular-nums">{today.pending}</div>
+            <div className="text-[11px] text-muted-foreground">Pendentes</div>
+          </div>
+          <div>
+            <div className="text-foreground font-bold text-xl tabular-nums">{today.done}</div>
+            <div className="text-[11px] text-muted-foreground">Concluídas</div>
+          </div>
+          <div>
+            <div className="text-gold font-bold text-sm tabular-nums pt-1.5">
+              {formatBRL(today.value)}
+            </div>
+            <div className="text-[11px] text-muted-foreground">Valor</div>
+          </div>
+        </div>
+      </div>
+
       <div className="-mx-4 px-4 overflow-x-auto">
         <div className="flex gap-2 min-w-max">
-          {NEIGHBORHOODS.map((n) => {
-            const active = neighborhood === n;
-            const count = counts[n] ?? 0;
+          {[ALL, ...NEIGHBORHOODS].map((n) => {
+            const isActive = neighborhood === n;
+            const count = n === ALL ? active.length : counts[n] ?? 0;
             return (
               <button
                 key={n}
                 onClick={() => setNeighborhood(n)}
                 className={cn(
                   "px-4 py-2 rounded-full text-sm font-medium border transition flex items-center gap-2 whitespace-nowrap",
-                  active
+                  isActive
                     ? "bg-gold text-gold-foreground border-gold"
                     : "bg-surface text-foreground border-border hover:border-gold/50"
                 )}
@@ -47,7 +97,7 @@ export function RoutesLogistics() {
                   <span
                     className={cn(
                       "text-xs rounded-full px-1.5 py-0.5 min-w-5 text-center font-bold",
-                      active ? "bg-gold-foreground/20" : "bg-dull-blue text-dull-blue-foreground"
+                      isActive ? "bg-gold-foreground/20" : "bg-dull-blue text-dull-blue-foreground"
                     )}
                   >
                     {count}
@@ -59,12 +109,15 @@ export function RoutesLogistics() {
         </div>
       </div>
 
+
       <div className="space-y-3">
         {filtered.length === 0 && (
           <div className="rounded-xl bg-surface border border-border p-8 text-center">
             <div className="text-foreground font-semibold">Nenhum pedido ativo</div>
             <div className="text-sm text-muted-foreground mt-1">
-              Não há entregas pendentes em {neighborhood}.
+              {neighborhood === ALL
+                ? "Não há entregas pendentes."
+                : `Não há entregas pendentes em ${neighborhood}.`}
             </div>
           </div>
         )}
