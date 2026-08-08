@@ -13,6 +13,7 @@ import {
 import { cn } from "@/lib/utils";
 import { highlight } from "@/lib/highlight";
 import { openExternalUrl } from "@/lib/browser-actions";
+import { NoteTemplates } from "@/components/pos/NoteTemplates";
 
 const safeText = (value: unknown) => (value == null ? "" : typeof value === "string" ? value : String(value));
 const searchText = (value: unknown) => {
