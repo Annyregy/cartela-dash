@@ -169,7 +169,9 @@ function OrderCard({
               placeholder="Ex.: portão azul, deixar com o vizinho, ligar ao chegar..."
               className="w-full rounded-md bg-background border border-border p-2 text-sm text-foreground outline-none focus:border-gold resize-none"
             />
+            <NoteTemplates value={noteDraft} onChange={setNoteDraft} />
             <div className="grid grid-cols-2 gap-2">
+
               <button
                 type="button"
                 onClick={() => {
