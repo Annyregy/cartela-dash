@@ -86,6 +86,10 @@ export function RoutesLogistics() {
         </div>
       </div>
 
+      <DeliveriesChart data={today.byRoute} />
+
+
+
       <div className="-mx-4 px-4 overflow-x-auto">
         <div className="flex gap-2 min-w-max">
           {[ALL, ...NEIGHBORHOODS].map((n) => {
