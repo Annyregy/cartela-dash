@@ -4,6 +4,7 @@ import { NEIGHBORHOODS } from "@/lib/pos-data";
 import { formatBRL, usePos, whatsappLink, type Order } from "@/lib/pos-store";
 import { openExternalUrl } from "@/lib/browser-actions";
 import { NoteTemplates } from "@/components/pos/NoteTemplates";
+import { DeliveriesChart, type RouteStat } from "@/components/pos/DeliveriesChart";
 import { cn } from "@/lib/utils";
 
 const ALL = "Todos";
@@ -35,11 +36,21 @@ export function RoutesLogistics() {
     };
     const list = orders.filter((o) => isToday(o.createdAt));
     const done = list.filter((o) => o.deliveryStatus === "concluido").length;
+    const byRoute: Record<string, RouteStat> = {};
+    for (const o of list) {
+      const name = o.neighborhood || "Sem rota";
+      const row = (byRoute[name] ??= { name, pendentes: 0, concluidas: 0 });
+      if (o.deliveryStatus === "concluido") row.concluidas += 1;
+      else row.pendentes += 1;
+    }
     return {
       total: list.length,
       done,
       pending: list.length - done,
       value: list.reduce((s, o) => s + (o.total || 0), 0),
+      byRoute: Object.values(byRoute).sort(
+        (a, b) => b.pendentes + b.concluidas - (a.pendentes + a.concluidas)
+      ),
     };
   }, [orders]);
 
@@ -74,6 +85,10 @@ export function RoutesLogistics() {
           </div>
         </div>
       </div>
+
+      <DeliveriesChart data={today.byRoute} />
+
+
 
       <div className="-mx-4 px-4 overflow-x-auto">
         <div className="flex gap-2 min-w-max">
