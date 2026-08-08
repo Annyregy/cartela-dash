@@ -269,6 +269,7 @@ export function NewOrder() {
               placeholder="Ex.: portão azul, deixar com o vizinho, ligar ao chegar..."
               className="mt-2 w-full rounded-lg bg-input border border-border p-2.5 text-sm text-foreground outline-none focus:border-gold resize-none"
             />
+            <NoteTemplates value={note} onChange={setNote} className="mt-2" />
             <p className="mt-1.5 text-xs text-muted-foreground">
               Fica salva neste cliente e vem preenchida no próximo pedido.
             </p>
