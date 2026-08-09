@@ -370,6 +370,12 @@ export function PosProvider({ children }: { children: ReactNode }) {
     setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, deliveryStatus: "concluido" } : o)));
   };
 
+  const setScheduledFor: State["setScheduledFor"] = (id, date) => {
+    const value = String(date ?? "");
+    patch("orders", id, { scheduled_for: value || null });
+    setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, scheduledFor: value } : o)));
+  };
+
   const setDeliveryNote: State["setDeliveryNote"] = (id, note, saveToCustomer = true) => {
     const value = String(note ?? "");
     patch("orders", id, { delivery_note: value });
