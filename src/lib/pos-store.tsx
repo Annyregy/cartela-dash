@@ -442,7 +442,40 @@ export function PosProvider({ children }: { children: ReactNode }) {
   const updateCustomer: State["updateCustomer"] = (id, c) => {
     patch("customers", id, customerRow(c));
     setCustomers((prev) => prev.map((x) => (x.id === id ? { ...x, ...c } : x)));
+
+    // propaga os dados do cliente para os pedidos já existentes
+    const orderPatch: Record<string, unknown> = {};
+    if (c.name !== undefined) orderPatch['customer_name'] = str(c.name);
+    if (c.phone !== undefined) orderPatch['phone'] = str(c.phone);
+    if (c.address !== undefined) orderPatch['address'] = str(c.address);
+    if (c.neighborhood !== undefined) orderPatch['neighborhood'] = str(c.neighborhood);
+    if (c.code !== undefined) orderPatch['customer_code'] = c.code ?? null;
+    if (Object.keys(orderPatch).length === 0) return;
+
+    void supabase
+      .from("orders")
+      .update(orderPatch as never)
+      .eq("customer_id", id)
+      .then(({ error }) => {
+        if (error) console.error("[cloud] falha ao atualizar pedidos do cliente", error);
+      });
+
+    setOrders((prev) =>
+      prev.map((o) =>
+        o.customerId === id
+          ? {
+              ...o,
+              ...(c.name !== undefined ? { customerName: str(c.name) } : {}),
+              ...(c.phone !== undefined ? { phone: str(c.phone) } : {}),
+              ...(c.address !== undefined ? { address: str(c.address) } : {}),
+              ...(c.neighborhood !== undefined ? { neighborhood: str(c.neighborhood) } : {}),
+              ...(c.code !== undefined ? { customerCode: c.code } : {}),
+            }
+          : o
+      )
+    );
   };
+
 
   const deleteCustomer: State["deleteCustomer"] = (id) => {
     remove("customers", id);
