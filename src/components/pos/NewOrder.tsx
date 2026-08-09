@@ -26,7 +26,7 @@ const searchText = (value: unknown) => {
 };
 
 export function NewOrder() {
-  const { customers, products, addOrder, updateCustomer } = usePos();
+  const { customers, products, orders, addOrder, appendToOrder, updateCustomer } = usePos();
   const [query, setQuery] = useState("");
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [openCustomer, setOpenCustomer] = useState(false);
@@ -39,8 +39,20 @@ export function NewOrder() {
   const [surchargePercent, setSurchargePercent] = useState("");
   const [surchargeValue, setSurchargeValue] = useState("");
   const [note, setNote] = useState("");
+  const [deliveryDate, setDeliveryDate] = useState(() => toDateKey());
+  const [targetOrderId, setTargetOrderId] = useState<string | null>(null);
   const [highlightIdx, setHighlightIdx] = useState(0);
   const listRef = useRef<HTMLDivElement | null>(null);
+
+  // pedidos em aberto do cliente selecionado (para acrescentar itens)
+  const openOrders = useMemo(
+    () =>
+      customer
+        ? orders.filter((o) => o.customerId === customer.id && o.deliveryStatus === "ativo")
+        : [],
+    [orders, customer]
+  );
+  const targetOrder = openOrders.find((o) => o.id === targetOrderId) ?? null;
 
   const [debouncedQuery, setDebouncedQuery] = useState("");
   useEffect(() => {
