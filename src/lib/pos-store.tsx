@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { migrateLocalDataToCloud } from "./local-migration";
 import {
+  toDateKey,
   type CartItem,
   type Customer,
   type Order,
@@ -22,9 +23,11 @@ type State = {
   purchases: Purchase[];
   refresh: () => Promise<unknown>;
   addOrder: (o: Omit<Order, "id" | "createdAt">) => Order;
+  appendToOrder: (id: string, items: CartItem[]) => void;
   updateOrder: (id: string, patch: Partial<Omit<Order, "id" | "createdAt" | "customerId">>) => void;
   deleteOrder: (id: string) => void;
   completeDelivery: (id: string) => void;
+  setScheduledFor: (id: string, date: string) => void;
   setDeliveryNote: (id: string, note: string, saveToCustomer?: boolean) => void;
   markPaid: (id: string) => void;
   markUnpaid: (id: string) => void;
@@ -124,6 +127,7 @@ const toOrder = (r: Row): Order => ({
   paidAmount: num(r['paid_amount']),
   deliveryStatus: (str(r['delivery_status']) || "ativo") as Order["deliveryStatus"],
   deliveryNote: str(r['delivery_note']),
+  scheduledFor: str(r['scheduled_for']) || toDateKey(str(r['created_at'])),
   createdAt: str(r['created_at']),
 });
 
@@ -147,6 +151,7 @@ const orderRow = (o: Partial<Order> & { id?: string }) => ({
   ...(o.paidAmount !== undefined ? { paid_amount: o.paidAmount } : {}),
   ...(o.deliveryStatus !== undefined ? { delivery_status: o.deliveryStatus } : {}),
   ...(o.deliveryNote !== undefined ? { delivery_note: o.deliveryNote } : {}),
+  ...(o.scheduledFor !== undefined ? { scheduled_for: o.scheduledFor || null } : {}),
   ...(o.createdAt !== undefined ? { created_at: o.createdAt } : {}),
 });
 
