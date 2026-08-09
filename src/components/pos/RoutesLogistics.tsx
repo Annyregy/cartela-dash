@@ -353,13 +353,25 @@ function OrderCard({
               Mapa indisponível no momento.
             </div>
           )}
-          <button
-            type="button"
-            onClick={() => openExternalUrl(mapsUrl)}
-            className="w-full py-2 text-sm font-medium text-gold bg-muted hover:bg-muted/70 transition"
-          >
-            Abrir no Google Maps
-          </button>
+          <div className="px-3 py-2 text-[11px] text-muted-foreground bg-muted/40 border-t border-border">
+            {mapsQuery}
+          </div>
+          <div className="grid grid-cols-2 divide-x divide-border border-t border-border">
+            <button
+              type="button"
+              onClick={() => openExternalUrl(mapsUrl)}
+              className="py-2 text-sm font-medium text-gold bg-muted hover:bg-muted/70 transition"
+            >
+              Abrir no Maps
+            </button>
+            <button
+              type="button"
+              onClick={() => openExternalUrl(routeUrl)}
+              className="py-2 text-sm font-medium text-gold bg-muted hover:bg-muted/70 transition"
+            >
+              Traçar rota
+            </button>
+          </div>
         </div>
       )}
 
