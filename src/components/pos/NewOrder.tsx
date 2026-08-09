@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Check, Download, Minus, Plus, Save, Search, Send, ShoppingCart, X } from "lucide-react";
+import { CalendarDays, Check, Download, Minus, Plus, Save, Search, Send, ShoppingCart, X } from "lucide-react";
 import {
   buildReceipt,
   formatBRL,
+  formatDateLabel,
+  toDateKey,
   usePos,
   whatsappLink,
   type CartItem,
   type Customer,
+  type Order,
   type PaymentMethod,
   type PaymentStatus,
 } from "@/lib/pos-store";
@@ -23,7 +26,7 @@ const searchText = (value: unknown) => {
 };
 
 export function NewOrder() {
-  const { customers, products, addOrder, updateCustomer } = usePos();
+  const { customers, products, orders, addOrder, appendToOrder, updateCustomer } = usePos();
   const [query, setQuery] = useState("");
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [openCustomer, setOpenCustomer] = useState(false);
@@ -36,8 +39,20 @@ export function NewOrder() {
   const [surchargePercent, setSurchargePercent] = useState("");
   const [surchargeValue, setSurchargeValue] = useState("");
   const [note, setNote] = useState("");
+  const [deliveryDate, setDeliveryDate] = useState(() => toDateKey());
+  const [targetOrderId, setTargetOrderId] = useState<string | null>(null);
   const [highlightIdx, setHighlightIdx] = useState(0);
   const listRef = useRef<HTMLDivElement | null>(null);
+
+  // pedidos em aberto do cliente selecionado (para acrescentar itens)
+  const openOrders = useMemo(
+    () =>
+      customer
+        ? orders.filter((o) => o.customerId === customer.id && o.deliveryStatus === "ativo")
+        : [],
+    [orders, customer]
+  );
+  const targetOrder = openOrders.find((o) => o.id === targetOrderId) ?? null;
 
   const [debouncedQuery, setDebouncedQuery] = useState("");
   useEffect(() => {
@@ -107,6 +122,8 @@ export function NewOrder() {
     setDiscountValue("");
     setSurchargePercent("");
     setSurchargeValue("");
+    setDeliveryDate(toDateKey());
+    setTargetOrderId(null);
     setCartOpen(false);
   }, []);
 
@@ -116,25 +133,49 @@ export function NewOrder() {
     if (!customer || cartItems.length === 0) return;
     setSubmitting(true);
     try {
-      const order = addOrder({
-        customerId: customer.id,
-        customerCode: customer.code,
-        customerName: customer.name,
-        phone: customer.phone,
-        address: customer.address,
-        neighborhood: customer.neighborhood,
-        items: cartItems,
-        subtotal,
-        discountPercent: discountPercentNumber,
-        discountValue: discountValueNumber,
-        surchargePercent: surchargePercentNumber,
-        surchargeValue: surchargeValueNumber,
-        total,
-        paymentMethod: payment,
-        paymentStatus: status,
-        deliveryStatus: "ativo",
-        deliveryNote: note.trim(),
-      });
+      let order: Order;
+      if (targetOrder) {
+        // acrescenta ao pedido existente em vez de criar outro
+        const merged: CartItem[] = targetOrder.items.map((i) => ({ ...i }));
+        cartItems.forEach((i) => {
+          const found = merged.find((x) => x.productId === i.productId);
+          if (found) found.quantity += i.quantity;
+          else merged.push({ ...i });
+        });
+        const mergedSubtotal = merged.reduce((s, i) => s + i.price * i.quantity, 0);
+        const disc =
+          mergedSubtotal * ((targetOrder.discountPercent ?? 0) / 100) + (targetOrder.discountValue ?? 0);
+        const sur =
+          mergedSubtotal * ((targetOrder.surchargePercent ?? 0) / 100) + (targetOrder.surchargeValue ?? 0);
+        appendToOrder(targetOrder.id, cartItems);
+        order = {
+          ...targetOrder,
+          items: merged,
+          subtotal: mergedSubtotal,
+          total: Math.max(0, mergedSubtotal - disc + sur),
+        };
+      } else {
+        order = addOrder({
+          customerId: customer.id,
+          customerCode: customer.code,
+          customerName: customer.name,
+          phone: customer.phone,
+          address: customer.address,
+          neighborhood: customer.neighborhood,
+          items: cartItems,
+          subtotal,
+          discountPercent: discountPercentNumber,
+          discountValue: discountValueNumber,
+          surchargePercent: surchargePercentNumber,
+          surchargeValue: surchargeValueNumber,
+          total,
+          paymentMethod: payment,
+          paymentStatus: status,
+          deliveryStatus: "ativo",
+          deliveryNote: note.trim(),
+          scheduledFor: deliveryDate || toDateKey(),
+        });
+      }
       if (note.trim() !== (customer.note ?? "")) {
         updateCustomer(customer.id, { note: note.trim() });
       }
@@ -147,6 +188,9 @@ export function NewOrder() {
     }
   }, [
     addOrder,
+    appendToOrder,
+    targetOrder,
+    deliveryDate,
     updateCustomer,
     note,
     cartItems,
@@ -162,6 +206,7 @@ export function NewOrder() {
     surchargeValueNumber,
     total,
   ]);
+
 
 
   // Enter (globally) confirms the order — except inside the customer picker
@@ -257,6 +302,77 @@ export function NewOrder() {
           )}
         </div>
 
+        {/* Entrega: data agendada + acrescentar a pedido existente */}
+        {customer && (
+          <div className="rounded-xl bg-surface border border-border p-4 space-y-3">
+            <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1.5">
+              <CalendarDays className="size-3.5" />
+              Data da entrega
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                type="date"
+                value={deliveryDate}
+                onChange={(e) => setDeliveryDate(e.target.value)}
+                disabled={!!targetOrder}
+                className="flex-1 rounded-lg bg-input border border-border px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold disabled:opacity-50"
+              />
+              <button
+                type="button"
+                onClick={() => setDeliveryDate(toDateKey())}
+                disabled={!!targetOrder}
+                className="px-3 py-2.5 rounded-lg bg-muted text-foreground text-sm border border-border disabled:opacity-50"
+              >
+                Hoje
+              </button>
+            </div>
+
+            {openOrders.length > 0 && (
+              <div className="space-y-2 border-t border-border pt-3">
+                <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
+                  Pedido em aberto deste cliente
+                </div>
+                <div className="grid gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setTargetOrderId(null)}
+                    className={cn(
+                      "text-left px-3 py-2 rounded-lg border text-sm transition",
+                      !targetOrderId
+                        ? "bg-gold text-gold-foreground border-gold font-semibold"
+                        : "bg-muted text-foreground border-border"
+                    )}
+                  >
+                    Criar novo pedido
+                  </button>
+                  {openOrders.map((o) => (
+                    <button
+                      key={o.id}
+                      type="button"
+                      onClick={() => setTargetOrderId(o.id)}
+                      className={cn(
+                        "text-left px-3 py-2 rounded-lg border text-sm transition",
+                        targetOrderId === o.id
+                          ? "bg-gold text-gold-foreground border-gold font-semibold"
+                          : "bg-muted text-foreground border-border"
+                      )}
+                    >
+                      Acrescentar ao pedido de{" "}
+                      {formatDateLabel(o.scheduledFor || toDateKey(o.createdAt))} ·{" "}
+                      {o.items.reduce((s, i) => s + i.quantity, 0)} itens · {formatBRL(o.total)}
+                    </button>
+                  ))}
+                </div>
+                {targetOrder && (
+                  <p className="text-xs text-muted-foreground">
+                    Os itens serão somados ao pedido existente (sem criar outra entrega).
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Delivery note (saved per customer) */}
         {customer && (
           <div className="rounded-xl bg-surface border border-border p-4">
@@ -329,7 +445,7 @@ export function NewOrder() {
                         const c = filteredCustomers[highlightIdx];
                         if (c) {
                           setCustomer(c);
-                          setNote(c.note ?? "");
+                          setNote(c.note ?? ""); setTargetOrderId(null);
                           setOpenCustomer(false);
                           setQuery("");
                         }
@@ -375,7 +491,7 @@ export function NewOrder() {
                       onMouseEnter={() => setHighlightIdx(idx)}
                       onClick={() => {
                         setCustomer(c);
-                          setNote(c.note ?? "");
+                          setNote(c.note ?? ""); setTargetOrderId(null);
                         setOpenCustomer(false);
                         setQuery("");
                       }}

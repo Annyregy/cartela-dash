@@ -1,21 +1,46 @@
 import { useMemo, useState } from "react";
-import { CheckCircle2, MapPin, MessageCircle, Navigation, Phone, StickyNote, Truck } from "lucide-react";
+import {
+  CalendarDays,
+  CheckCircle2,
+  MapPin,
+  MessageCircle,
+  Navigation,
+  Phone,
+  StickyNote,
+  Truck,
+} from "lucide-react";
 import { NEIGHBORHOODS } from "@/lib/pos-data";
-import { formatBRL, usePos, whatsappLink, type Order } from "@/lib/pos-store";
+import {
+  formatBRL,
+  formatDateLabel,
+  toDateKey,
+  usePos,
+  whatsappLink,
+  type Order,
+} from "@/lib/pos-store";
 import { openExternalUrl } from "@/lib/browser-actions";
+import { buildMapsQuery, mapsDirectionsUrl, mapsEmbedUrl, mapsSearchUrl } from "@/lib/maps";
 import { NoteTemplates } from "@/components/pos/NoteTemplates";
 import { DeliveriesChart, type RouteStat } from "@/components/pos/DeliveriesChart";
 import { cn } from "@/lib/utils";
 
 const ALL = "Todos";
 
+const orderDate = (o: Order) => o.scheduledFor || toDateKey(o.createdAt);
+
 export function RoutesLogistics() {
-  const { orders, completeDelivery, setDeliveryNote } = usePos();
+  const { orders, completeDelivery, setDeliveryNote, setScheduledFor } = usePos();
   const [neighborhood, setNeighborhood] = useState<string>(ALL);
+  const [date, setDate] = useState<string>(() => toDateKey());
+
+  const dayOrders = useMemo(
+    () => orders.filter((o) => orderDate(o) === date),
+    [orders, date]
+  );
 
   const active = useMemo(
-    () => orders.filter((o) => o.deliveryStatus === "ativo"),
-    [orders]
+    () => dayOrders.filter((o) => o.deliveryStatus === "ativo"),
+    [dayOrders]
   );
 
   const counts = useMemo(() => {
@@ -25,16 +50,7 @@ export function RoutesLogistics() {
   }, [active]);
 
   const today = useMemo(() => {
-    const isToday = (iso: string) => {
-      const d = new Date(iso);
-      const n = new Date();
-      return (
-        d.getFullYear() === n.getFullYear() &&
-        d.getMonth() === n.getMonth() &&
-        d.getDate() === n.getDate()
-      );
-    };
-    const list = orders.filter((o) => isToday(o.createdAt));
+    const list = dayOrders;
     const done = list.filter((o) => o.deliveryStatus === "concluido").length;
     const byRoute: Record<string, RouteStat> = {};
     for (const o of list) {
@@ -52,18 +68,45 @@ export function RoutesLogistics() {
         (a, b) => b.pendentes + b.concluidas - (a.pendentes + a.concluidas)
       ),
     };
-  }, [orders]);
+  }, [dayOrders]);
 
   const filtered =
     neighborhood === ALL ? active : active.filter((o) => o.neighborhood === neighborhood);
 
+
   return (
     <div className="space-y-5 pb-24 md:pb-8">
       <div className="rounded-xl bg-surface border border-border p-4">
-        <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
-          <Truck className="size-3.5" />
-          Entregas de hoje
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
+            <Truck className="size-3.5" />
+            Entregas de {formatDateLabel(date).toLowerCase()}
+          </div>
         </div>
+        <div className="mt-3 flex items-center gap-2">
+          <CalendarDays className="size-4 text-muted-foreground shrink-0" />
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value || toDateKey())}
+            className="flex-1 rounded-lg bg-input border border-border px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+          />
+          <button
+            type="button"
+            onClick={() => setDate(toDateKey())}
+            className="px-3 py-2 rounded-lg bg-muted text-foreground text-sm border border-border"
+          >
+            Hoje
+          </button>
+          <button
+            type="button"
+            onClick={() => setDate(toDateKey(new Date(Date.now() + 86400000)))}
+            className="px-3 py-2 rounded-lg bg-muted text-foreground text-sm border border-border"
+          >
+            Amanhã
+          </button>
+        </div>
+
         <div className="mt-3 grid grid-cols-4 gap-2 text-center">
           <div>
             <div className="text-gold font-bold text-xl tabular-nums">{today.total}</div>
@@ -131,8 +174,8 @@ export function RoutesLogistics() {
             <div className="text-foreground font-semibold">Nenhum pedido ativo</div>
             <div className="text-sm text-muted-foreground mt-1">
               {neighborhood === ALL
-                ? "Não há entregas pendentes."
-                : `Não há entregas pendentes em ${neighborhood}.`}
+                ? `Não há entregas pendentes em ${formatDateLabel(date).toLowerCase()}.`
+                : `Não há entregas pendentes em ${neighborhood} nesta data.`}
             </div>
           </div>
         )}
@@ -142,6 +185,7 @@ export function RoutesLogistics() {
             order={o}
             onComplete={() => completeDelivery(o.id)}
             onSaveNote={(note) => setDeliveryNote(o.id, note)}
+            onReschedule={(d) => setScheduledFor(o.id, d)}
           />
         ))}
       </div>
@@ -157,21 +201,21 @@ function OrderCard({
   order,
   onComplete,
   onSaveNote,
+  onReschedule,
 }: {
   order: Order;
   onComplete: () => void;
   onSaveNote: (note: string) => void;
+  onReschedule: (date: string) => void;
 }) {
   const summary = order.items.map((i) => `${i.quantity}x ${i.name}`).join(", ");
   const waMsg = `Olá ${order.customerName}, seu pedido de ovos já está na rota de entrega e chega em breve!`;
   const isPaid = order.paymentStatus === "Pago";
-  const mapsQuery = [order.address, order.neighborhood, "São Sebastião, SP"]
-    .filter(Boolean)
-    .join(", ");
-  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery)}`;
-  const embedUrl = EMBED_KEY
-    ? `https://www.google.com/maps/embed/v1/place?key=${EMBED_KEY}&q=${encodeURIComponent(mapsQuery)}&zoom=16`
-    : null;
+  const mapsQuery = buildMapsQuery(order.address, order.neighborhood);
+  const mapsUrl = mapsSearchUrl(mapsQuery);
+  const routeUrl = mapsDirectionsUrl(mapsQuery);
+  const embedUrl = EMBED_KEY ? mapsEmbedUrl(EMBED_KEY, mapsQuery) : null;
+  const scheduled = order.scheduledFor || toDateKey(order.createdAt);
   const [showMap, setShowMap] = useState(false);
   const [editingNote, setEditingNote] = useState(false);
   const [noteDraft, setNoteDraft] = useState(order.deliveryNote ?? "");
@@ -222,6 +266,20 @@ function OrderCard({
         <span className="text-xs uppercase tracking-wider text-muted-foreground">Total</span>
         <span className="text-gold font-bold text-xl tabular-nums">{formatBRL(order.total)}</span>
       </div>
+
+      <div className="flex items-center justify-between gap-2 rounded-lg bg-muted/50 border border-border px-3 py-2">
+        <span className="flex items-center gap-1.5 text-xs uppercase tracking-wider text-muted-foreground">
+          <CalendarDays className="size-3.5" />
+          Entrega agendada
+        </span>
+        <input
+          type="date"
+          value={scheduled}
+          onChange={(e) => onReschedule(e.target.value)}
+          className="rounded-md bg-input border border-border px-2 py-1 text-sm text-foreground outline-none focus:border-gold"
+        />
+      </div>
+
 
       <div className="rounded-lg bg-muted/50 border border-border p-3 space-y-2">
         <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
@@ -295,13 +353,25 @@ function OrderCard({
               Mapa indisponível no momento.
             </div>
           )}
-          <button
-            type="button"
-            onClick={() => openExternalUrl(mapsUrl)}
-            className="w-full py-2 text-sm font-medium text-gold bg-muted hover:bg-muted/70 transition"
-          >
-            Abrir no Google Maps
-          </button>
+          <div className="px-3 py-2 text-[11px] text-muted-foreground bg-muted/40 border-t border-border">
+            {mapsQuery}
+          </div>
+          <div className="grid grid-cols-2 divide-x divide-border border-t border-border">
+            <button
+              type="button"
+              onClick={() => openExternalUrl(mapsUrl)}
+              className="py-2 text-sm font-medium text-gold bg-muted hover:bg-muted/70 transition"
+            >
+              Abrir no Maps
+            </button>
+            <button
+              type="button"
+              onClick={() => openExternalUrl(routeUrl)}
+              className="py-2 text-sm font-medium text-gold bg-muted hover:bg-muted/70 transition"
+            >
+              Traçar rota
+            </button>
+          </div>
         </div>
       )}
 

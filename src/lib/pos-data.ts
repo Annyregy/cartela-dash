@@ -48,7 +48,29 @@ export type Order = {
   paidAmount?: number;
   deliveryStatus: DeliveryStatus;
   deliveryNote?: string;
+  /** Data agendada da entrega (YYYY-MM-DD) */
+  scheduledFor?: string;
   createdAt: string;
+};
+
+/** Data local (fuso do aparelho) no formato YYYY-MM-DD */
+export const toDateKey = (d: Date | string = new Date()) => {
+  const date = typeof d === "string" ? new Date(d) : d;
+  if (Number.isNaN(date.getTime())) return "";
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${p(date.getMonth() + 1)}-${p(date.getDate())}`;
+};
+
+/** Rótulo curto para uma data YYYY-MM-DD */
+export const formatDateLabel = (key: string) => {
+  if (!key) return "";
+  const [y, m, d] = key.split("-").map(Number);
+  if (!y || !m || !d) return key;
+  const today = toDateKey();
+  const tomorrow = toDateKey(new Date(Date.now() + 86400000));
+  if (key === today) return "Hoje";
+  if (key === tomorrow) return "Amanhã";
+  return `${String(d).padStart(2, "0")}/${String(m).padStart(2, "0")}/${y}`;
 };
 
 export type Supplier = {

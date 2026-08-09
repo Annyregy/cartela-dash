@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { migrateLocalDataToCloud } from "./local-migration";
 import {
+  toDateKey,
   type CartItem,
   type Customer,
   type Order,
@@ -22,9 +23,11 @@ type State = {
   purchases: Purchase[];
   refresh: () => Promise<unknown>;
   addOrder: (o: Omit<Order, "id" | "createdAt">) => Order;
+  appendToOrder: (id: string, items: CartItem[]) => void;
   updateOrder: (id: string, patch: Partial<Omit<Order, "id" | "createdAt" | "customerId">>) => void;
   deleteOrder: (id: string) => void;
   completeDelivery: (id: string) => void;
+  setScheduledFor: (id: string, date: string) => void;
   setDeliveryNote: (id: string, note: string, saveToCustomer?: boolean) => void;
   markPaid: (id: string) => void;
   markUnpaid: (id: string) => void;
@@ -124,6 +127,7 @@ const toOrder = (r: Row): Order => ({
   paidAmount: num(r['paid_amount']),
   deliveryStatus: (str(r['delivery_status']) || "ativo") as Order["deliveryStatus"],
   deliveryNote: str(r['delivery_note']),
+  scheduledFor: str(r['scheduled_for']) || toDateKey(str(r['created_at'])),
   createdAt: str(r['created_at']),
 });
 
@@ -147,6 +151,7 @@ const orderRow = (o: Partial<Order> & { id?: string }) => ({
   ...(o.paidAmount !== undefined ? { paid_amount: o.paidAmount } : {}),
   ...(o.deliveryStatus !== undefined ? { delivery_status: o.deliveryStatus } : {}),
   ...(o.deliveryNote !== undefined ? { delivery_note: o.deliveryNote } : {}),
+  ...(o.scheduledFor !== undefined ? { scheduled_for: o.scheduledFor || null } : {}),
   ...(o.createdAt !== undefined ? { created_at: o.createdAt } : {}),
 });
 
@@ -283,13 +288,52 @@ export function PosProvider({ children }: { children: ReactNode }) {
   };
 
   const addOrder: State["addOrder"] = (o) => {
-    const order: Order = { ...o, id: `o_${Date.now()}`, createdAt: new Date().toISOString() };
+    const order: Order = {
+      ...o,
+      scheduledFor: o.scheduledFor || toDateKey(),
+      id: `o_${Date.now()}`,
+      createdAt: new Date().toISOString(),
+    };
     const deltas = new Map<string, number>();
     o.items.forEach((i) => deltas.set(i.productId, -(i.quantity ?? 0)));
     applyStock(deltas);
     setOrders((prev) => [order, ...prev]);
     save("orders", orderRow(order));
     return order;
+  };
+
+  /** Acrescenta itens a um pedido existente, recalculando totais e estoque. */
+  const appendToOrder: State["appendToOrder"] = (id, items) => {
+    if (!items.length) return;
+    const deltas = new Map<string, number>();
+    items.forEach((i) => deltas.set(i.productId, (deltas.get(i.productId) ?? 0) - i.quantity));
+    applyStock(deltas);
+    setOrders((prev) =>
+      prev.map((o) => {
+        if (o.id !== id) return o;
+        const merged = [...o.items];
+        items.forEach((i) => {
+          const found = merged.find((x) => x.productId === i.productId);
+          if (found) found.quantity += i.quantity;
+          else merged.push({ ...i });
+        });
+        const subtotal = merged.reduce((s, i) => s + i.price * i.quantity, 0);
+        const discount = subtotal * ((o.discountPercent ?? 0) / 100) + (o.discountValue ?? 0);
+        const surcharge = subtotal * ((o.surchargePercent ?? 0) / 100) + (o.surchargeValue ?? 0);
+        const total = Math.max(0, subtotal - discount + surcharge);
+        const paid = Math.min(o.paidAmount ?? 0, total);
+        const paymentStatus: PaymentStatus = paid >= total - 0.005 && paid > 0 ? "Pago" : "Pendente";
+        const next: Order = { ...o, items: merged, subtotal, total, paidAmount: paid, paymentStatus };
+        patch("orders", id, {
+          items: merged,
+          subtotal,
+          total,
+          paid_amount: paid,
+          payment_status: paymentStatus,
+        });
+        return next;
+      })
+    );
   };
 
   const updateOrder: State["updateOrder"] = (id, p) => {
@@ -324,6 +368,12 @@ export function PosProvider({ children }: { children: ReactNode }) {
   const completeDelivery: State["completeDelivery"] = (id) => {
     patch("orders", id, { delivery_status: "concluido" });
     setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, deliveryStatus: "concluido" } : o)));
+  };
+
+  const setScheduledFor: State["setScheduledFor"] = (id, date) => {
+    const value = String(date ?? "");
+    patch("orders", id, { scheduled_for: value || null });
+    setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, scheduledFor: value } : o)));
   };
 
   const setDeliveryNote: State["setDeliveryNote"] = (id, note, saveToCustomer = true) => {
@@ -493,9 +543,11 @@ export function PosProvider({ children }: { children: ReactNode }) {
         purchases,
         refresh,
         addOrder,
+        appendToOrder,
         updateOrder,
         deleteOrder,
         completeDelivery,
+        setScheduledFor,
         setDeliveryNote,
         markPaid,
         markUnpaid,
@@ -554,3 +606,4 @@ export const whatsappLink = (phone: string, message: string) =>
   `https://wa.me/${phone.replace(/\D/g, "")}?text=${encodeURIComponent(message)}`;
 
 export type { CartItem, Customer, Order, Product, PaymentMethod, PaymentStatus, Supplier, Purchase, PurchaseItem } from "./pos-data";
+export { toDateKey, formatDateLabel } from "./pos-data";

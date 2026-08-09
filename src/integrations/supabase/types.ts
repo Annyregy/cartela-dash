@@ -65,6 +65,7 @@ export type Database = {
           payment_method: string
           payment_status: string
           phone: string
+          scheduled_for: string | null
           subtotal: number | null
           surcharge_percent: number | null
           surcharge_value: number | null
@@ -87,6 +88,7 @@ export type Database = {
           payment_method?: string
           payment_status?: string
           phone?: string
+          scheduled_for?: string | null
           subtotal?: number | null
           surcharge_percent?: number | null
           surcharge_value?: number | null
@@ -109,6 +111,7 @@ export type Database = {
           payment_method?: string
           payment_status?: string
           phone?: string
+          scheduled_for?: string | null
           subtotal?: number | null
           surcharge_percent?: number | null
           surcharge_value?: number | null
