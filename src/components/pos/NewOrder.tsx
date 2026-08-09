@@ -302,6 +302,77 @@ export function NewOrder() {
           )}
         </div>
 
+        {/* Entrega: data agendada + acrescentar a pedido existente */}
+        {customer && (
+          <div className="rounded-xl bg-surface border border-border p-4 space-y-3">
+            <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1.5">
+              <CalendarDays className="size-3.5" />
+              Data da entrega
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                type="date"
+                value={deliveryDate}
+                onChange={(e) => setDeliveryDate(e.target.value)}
+                disabled={!!targetOrder}
+                className="flex-1 rounded-lg bg-input border border-border px-3 py-2.5 text-sm text-foreground outline-none focus:border-gold disabled:opacity-50"
+              />
+              <button
+                type="button"
+                onClick={() => setDeliveryDate(toDateKey())}
+                disabled={!!targetOrder}
+                className="px-3 py-2.5 rounded-lg bg-muted text-foreground text-sm border border-border disabled:opacity-50"
+              >
+                Hoje
+              </button>
+            </div>
+
+            {openOrders.length > 0 && (
+              <div className="space-y-2 border-t border-border pt-3">
+                <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
+                  Pedido em aberto deste cliente
+                </div>
+                <div className="grid gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setTargetOrderId(null)}
+                    className={cn(
+                      "text-left px-3 py-2 rounded-lg border text-sm transition",
+                      !targetOrderId
+                        ? "bg-gold text-gold-foreground border-gold font-semibold"
+                        : "bg-muted text-foreground border-border"
+                    )}
+                  >
+                    Criar novo pedido
+                  </button>
+                  {openOrders.map((o) => (
+                    <button
+                      key={o.id}
+                      type="button"
+                      onClick={() => setTargetOrderId(o.id)}
+                      className={cn(
+                        "text-left px-3 py-2 rounded-lg border text-sm transition",
+                        targetOrderId === o.id
+                          ? "bg-gold text-gold-foreground border-gold font-semibold"
+                          : "bg-muted text-foreground border-border"
+                      )}
+                    >
+                      Acrescentar ao pedido de{" "}
+                      {formatDateLabel(o.scheduledFor || toDateKey(o.createdAt))} ·{" "}
+                      {o.items.reduce((s, i) => s + i.quantity, 0)} itens · {formatBRL(o.total)}
+                    </button>
+                  ))}
+                </div>
+                {targetOrder && (
+                  <p className="text-xs text-muted-foreground">
+                    Os itens serão somados ao pedido existente (sem criar outra entrega).
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Delivery note (saved per customer) */}
         {customer && (
           <div className="rounded-xl bg-surface border border-border p-4">
