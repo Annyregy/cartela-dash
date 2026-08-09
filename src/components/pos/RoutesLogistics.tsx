@@ -174,8 +174,8 @@ export function RoutesLogistics() {
             <div className="text-foreground font-semibold">Nenhum pedido ativo</div>
             <div className="text-sm text-muted-foreground mt-1">
               {neighborhood === ALL
-                ? "Não há entregas pendentes."
-                : `Não há entregas pendentes em ${neighborhood}.`}
+                ? `Não há entregas pendentes em ${formatDateLabel(date).toLowerCase()}.`
+                : `Não há entregas pendentes em ${neighborhood} nesta data.`}
             </div>
           </div>
         )}
@@ -185,6 +185,7 @@ export function RoutesLogistics() {
             order={o}
             onComplete={() => completeDelivery(o.id)}
             onSaveNote={(note) => setDeliveryNote(o.id, note)}
+            onReschedule={(d) => setScheduledFor(o.id, d)}
           />
         ))}
       </div>
