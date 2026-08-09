@@ -1,21 +1,46 @@
 import { useMemo, useState } from "react";
-import { CheckCircle2, MapPin, MessageCircle, Navigation, Phone, StickyNote, Truck } from "lucide-react";
+import {
+  CalendarDays,
+  CheckCircle2,
+  MapPin,
+  MessageCircle,
+  Navigation,
+  Phone,
+  StickyNote,
+  Truck,
+} from "lucide-react";
 import { NEIGHBORHOODS } from "@/lib/pos-data";
-import { formatBRL, usePos, whatsappLink, type Order } from "@/lib/pos-store";
+import {
+  formatBRL,
+  formatDateLabel,
+  toDateKey,
+  usePos,
+  whatsappLink,
+  type Order,
+} from "@/lib/pos-store";
 import { openExternalUrl } from "@/lib/browser-actions";
+import { buildMapsQuery, mapsDirectionsUrl, mapsEmbedUrl, mapsSearchUrl } from "@/lib/maps";
 import { NoteTemplates } from "@/components/pos/NoteTemplates";
 import { DeliveriesChart, type RouteStat } from "@/components/pos/DeliveriesChart";
 import { cn } from "@/lib/utils";
 
 const ALL = "Todos";
 
+const orderDate = (o: Order) => o.scheduledFor || toDateKey(o.createdAt);
+
 export function RoutesLogistics() {
-  const { orders, completeDelivery, setDeliveryNote } = usePos();
+  const { orders, completeDelivery, setDeliveryNote, setScheduledFor } = usePos();
   const [neighborhood, setNeighborhood] = useState<string>(ALL);
+  const [date, setDate] = useState<string>(() => toDateKey());
+
+  const dayOrders = useMemo(
+    () => orders.filter((o) => orderDate(o) === date),
+    [orders, date]
+  );
 
   const active = useMemo(
-    () => orders.filter((o) => o.deliveryStatus === "ativo"),
-    [orders]
+    () => dayOrders.filter((o) => o.deliveryStatus === "ativo"),
+    [dayOrders]
   );
 
   const counts = useMemo(() => {
@@ -25,16 +50,7 @@ export function RoutesLogistics() {
   }, [active]);
 
   const today = useMemo(() => {
-    const isToday = (iso: string) => {
-      const d = new Date(iso);
-      const n = new Date();
-      return (
-        d.getFullYear() === n.getFullYear() &&
-        d.getMonth() === n.getMonth() &&
-        d.getDate() === n.getDate()
-      );
-    };
-    const list = orders.filter((o) => isToday(o.createdAt));
+    const list = dayOrders;
     const done = list.filter((o) => o.deliveryStatus === "concluido").length;
     const byRoute: Record<string, RouteStat> = {};
     for (const o of list) {
@@ -52,10 +68,11 @@ export function RoutesLogistics() {
         (a, b) => b.pendentes + b.concluidas - (a.pendentes + a.concluidas)
       ),
     };
-  }, [orders]);
+  }, [dayOrders]);
 
   const filtered =
     neighborhood === ALL ? active : active.filter((o) => o.neighborhood === neighborhood);
+
 
   return (
     <div className="space-y-5 pb-24 md:pb-8">
