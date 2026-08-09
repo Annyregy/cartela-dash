@@ -122,6 +122,8 @@ export function NewOrder() {
     setDiscountValue("");
     setSurchargePercent("");
     setSurchargeValue("");
+    setDeliveryDate(toDateKey());
+    setTargetOrderId(null);
     setCartOpen(false);
   }, []);
 
@@ -131,25 +133,49 @@ export function NewOrder() {
     if (!customer || cartItems.length === 0) return;
     setSubmitting(true);
     try {
-      const order = addOrder({
-        customerId: customer.id,
-        customerCode: customer.code,
-        customerName: customer.name,
-        phone: customer.phone,
-        address: customer.address,
-        neighborhood: customer.neighborhood,
-        items: cartItems,
-        subtotal,
-        discountPercent: discountPercentNumber,
-        discountValue: discountValueNumber,
-        surchargePercent: surchargePercentNumber,
-        surchargeValue: surchargeValueNumber,
-        total,
-        paymentMethod: payment,
-        paymentStatus: status,
-        deliveryStatus: "ativo",
-        deliveryNote: note.trim(),
-      });
+      let order: Order;
+      if (targetOrder) {
+        // acrescenta ao pedido existente em vez de criar outro
+        const merged: CartItem[] = targetOrder.items.map((i) => ({ ...i }));
+        cartItems.forEach((i) => {
+          const found = merged.find((x) => x.productId === i.productId);
+          if (found) found.quantity += i.quantity;
+          else merged.push({ ...i });
+        });
+        const mergedSubtotal = merged.reduce((s, i) => s + i.price * i.quantity, 0);
+        const disc =
+          mergedSubtotal * ((targetOrder.discountPercent ?? 0) / 100) + (targetOrder.discountValue ?? 0);
+        const sur =
+          mergedSubtotal * ((targetOrder.surchargePercent ?? 0) / 100) + (targetOrder.surchargeValue ?? 0);
+        appendToOrder(targetOrder.id, cartItems);
+        order = {
+          ...targetOrder,
+          items: merged,
+          subtotal: mergedSubtotal,
+          total: Math.max(0, mergedSubtotal - disc + sur),
+        };
+      } else {
+        order = addOrder({
+          customerId: customer.id,
+          customerCode: customer.code,
+          customerName: customer.name,
+          phone: customer.phone,
+          address: customer.address,
+          neighborhood: customer.neighborhood,
+          items: cartItems,
+          subtotal,
+          discountPercent: discountPercentNumber,
+          discountValue: discountValueNumber,
+          surchargePercent: surchargePercentNumber,
+          surchargeValue: surchargeValueNumber,
+          total,
+          paymentMethod: payment,
+          paymentStatus: status,
+          deliveryStatus: "ativo",
+          deliveryNote: note.trim(),
+          scheduledFor: deliveryDate || toDateKey(),
+        });
+      }
       if (note.trim() !== (customer.note ?? "")) {
         updateCustomer(customer.id, { note: note.trim() });
       }
@@ -162,6 +188,9 @@ export function NewOrder() {
     }
   }, [
     addOrder,
+    appendToOrder,
+    targetOrder,
+    deliveryDate,
     updateCustomer,
     note,
     cartItems,
@@ -177,6 +206,7 @@ export function NewOrder() {
     surchargeValueNumber,
     total,
   ]);
+
 
 
   // Enter (globally) confirms the order — except inside the customer picker
