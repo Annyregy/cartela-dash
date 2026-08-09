@@ -606,3 +606,4 @@ export const whatsappLink = (phone: string, message: string) =>
   `https://wa.me/${phone.replace(/\D/g, "")}?text=${encodeURIComponent(message)}`;
 
 export type { CartItem, Customer, Order, Product, PaymentMethod, PaymentStatus, Supplier, Purchase, PurchaseItem } from "./pos-data";
+export { toDateKey, formatDateLabel } from "./pos-data";
