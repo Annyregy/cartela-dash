@@ -288,13 +288,52 @@ export function PosProvider({ children }: { children: ReactNode }) {
   };
 
   const addOrder: State["addOrder"] = (o) => {
-    const order: Order = { ...o, id: `o_${Date.now()}`, createdAt: new Date().toISOString() };
+    const order: Order = {
+      ...o,
+      scheduledFor: o.scheduledFor || toDateKey(),
+      id: `o_${Date.now()}`,
+      createdAt: new Date().toISOString(),
+    };
     const deltas = new Map<string, number>();
     o.items.forEach((i) => deltas.set(i.productId, -(i.quantity ?? 0)));
     applyStock(deltas);
     setOrders((prev) => [order, ...prev]);
     save("orders", orderRow(order));
     return order;
+  };
+
+  /** Acrescenta itens a um pedido existente, recalculando totais e estoque. */
+  const appendToOrder: State["appendToOrder"] = (id, items) => {
+    if (!items.length) return;
+    const deltas = new Map<string, number>();
+    items.forEach((i) => deltas.set(i.productId, (deltas.get(i.productId) ?? 0) - i.quantity));
+    applyStock(deltas);
+    setOrders((prev) =>
+      prev.map((o) => {
+        if (o.id !== id) return o;
+        const merged = [...o.items];
+        items.forEach((i) => {
+          const found = merged.find((x) => x.productId === i.productId);
+          if (found) found.quantity += i.quantity;
+          else merged.push({ ...i });
+        });
+        const subtotal = merged.reduce((s, i) => s + i.price * i.quantity, 0);
+        const discount = subtotal * ((o.discountPercent ?? 0) / 100) + (o.discountValue ?? 0);
+        const surcharge = subtotal * ((o.surchargePercent ?? 0) / 100) + (o.surchargeValue ?? 0);
+        const total = Math.max(0, subtotal - discount + surcharge);
+        const paid = Math.min(o.paidAmount ?? 0, total);
+        const paymentStatus: PaymentStatus = paid >= total - 0.005 && paid > 0 ? "Pago" : "Pendente";
+        const next: Order = { ...o, items: merged, subtotal, total, paidAmount: paid, paymentStatus };
+        patch("orders", id, {
+          items: merged,
+          subtotal,
+          total,
+          paid_amount: paid,
+          payment_status: paymentStatus,
+        });
+        return next;
+      })
+    );
   };
 
   const updateOrder: State["updateOrder"] = (id, p) => {
