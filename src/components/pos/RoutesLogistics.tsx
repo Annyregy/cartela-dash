@@ -77,10 +77,36 @@ export function RoutesLogistics() {
   return (
     <div className="space-y-5 pb-24 md:pb-8">
       <div className="rounded-xl bg-surface border border-border p-4">
-        <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
-          <Truck className="size-3.5" />
-          Entregas de hoje
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
+            <Truck className="size-3.5" />
+            Entregas de {formatDateLabel(date).toLowerCase()}
+          </div>
         </div>
+        <div className="mt-3 flex items-center gap-2">
+          <CalendarDays className="size-4 text-muted-foreground shrink-0" />
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value || toDateKey())}
+            className="flex-1 rounded-lg bg-input border border-border px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+          />
+          <button
+            type="button"
+            onClick={() => setDate(toDateKey())}
+            className="px-3 py-2 rounded-lg bg-muted text-foreground text-sm border border-border"
+          >
+            Hoje
+          </button>
+          <button
+            type="button"
+            onClick={() => setDate(toDateKey(new Date(Date.now() + 86400000)))}
+            className="px-3 py-2 rounded-lg bg-muted text-foreground text-sm border border-border"
+          >
+            Amanhã
+          </button>
+        </div>
+
         <div className="mt-3 grid grid-cols-4 gap-2 text-center">
           <div>
             <div className="text-gold font-bold text-xl tabular-nums">{today.total}</div>
