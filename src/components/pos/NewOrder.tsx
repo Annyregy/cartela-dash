@@ -445,7 +445,7 @@ export function NewOrder() {
                         const c = filteredCustomers[highlightIdx];
                         if (c) {
                           setCustomer(c);
-                          setNote(c.note ?? "");
+                          setNote(c.note ?? ""); setTargetOrderId(null);
                           setOpenCustomer(false);
                           setQuery("");
                         }
@@ -491,7 +491,7 @@ export function NewOrder() {
                       onMouseEnter={() => setHighlightIdx(idx)}
                       onClick={() => {
                         setCustomer(c);
-                          setNote(c.note ?? "");
+                          setNote(c.note ?? ""); setTargetOrderId(null);
                         setOpenCustomer(false);
                         setQuery("");
                       }}
