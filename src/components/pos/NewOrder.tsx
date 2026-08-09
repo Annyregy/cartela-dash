@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Check, Download, Minus, Plus, Save, Search, Send, ShoppingCart, X } from "lucide-react";
+import { CalendarDays, Check, Download, Minus, Plus, Save, Search, Send, ShoppingCart, X } from "lucide-react";
 import {
   buildReceipt,
   formatBRL,
+  formatDateLabel,
+  toDateKey,
   usePos,
   whatsappLink,
   type CartItem,
   type Customer,
+  type Order,
   type PaymentMethod,
   type PaymentStatus,
 } from "@/lib/pos-store";
