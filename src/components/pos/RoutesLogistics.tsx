@@ -267,6 +267,20 @@ function OrderCard({
         <span className="text-gold font-bold text-xl tabular-nums">{formatBRL(order.total)}</span>
       </div>
 
+      <div className="flex items-center justify-between gap-2 rounded-lg bg-muted/50 border border-border px-3 py-2">
+        <span className="flex items-center gap-1.5 text-xs uppercase tracking-wider text-muted-foreground">
+          <CalendarDays className="size-3.5" />
+          Entrega agendada
+        </span>
+        <input
+          type="date"
+          value={scheduled}
+          onChange={(e) => onReschedule(e.target.value)}
+          className="rounded-md bg-input border border-border px-2 py-1 text-sm text-foreground outline-none focus:border-gold"
+        />
+      </div>
+
+
       <div className="rounded-lg bg-muted/50 border border-border p-3 space-y-2">
         <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
           <StickyNote className="size-3.5" />
