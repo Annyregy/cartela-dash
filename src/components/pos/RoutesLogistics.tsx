@@ -201,21 +201,21 @@ function OrderCard({
   order,
   onComplete,
   onSaveNote,
+  onReschedule,
 }: {
   order: Order;
   onComplete: () => void;
   onSaveNote: (note: string) => void;
+  onReschedule: (date: string) => void;
 }) {
   const summary = order.items.map((i) => `${i.quantity}x ${i.name}`).join(", ");
   const waMsg = `Olá ${order.customerName}, seu pedido de ovos já está na rota de entrega e chega em breve!`;
   const isPaid = order.paymentStatus === "Pago";
-  const mapsQuery = [order.address, order.neighborhood, "São Sebastião, SP"]
-    .filter(Boolean)
-    .join(", ");
-  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery)}`;
-  const embedUrl = EMBED_KEY
-    ? `https://www.google.com/maps/embed/v1/place?key=${EMBED_KEY}&q=${encodeURIComponent(mapsQuery)}&zoom=16`
-    : null;
+  const mapsQuery = buildMapsQuery(order.address, order.neighborhood);
+  const mapsUrl = mapsSearchUrl(mapsQuery);
+  const routeUrl = mapsDirectionsUrl(mapsQuery);
+  const embedUrl = EMBED_KEY ? mapsEmbedUrl(EMBED_KEY, mapsQuery) : null;
+  const scheduled = order.scheduledFor || toDateKey(order.createdAt);
   const [showMap, setShowMap] = useState(false);
   const [editingNote, setEditingNote] = useState(false);
   const [noteDraft, setNoteDraft] = useState(order.deliveryNote ?? "");
