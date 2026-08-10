@@ -5,6 +5,7 @@ import {
   MapPin,
   MessageCircle,
   Navigation,
+  Pencil,
   Phone,
   StickyNote,
   Truck,
@@ -29,7 +30,8 @@ const ALL = "Todos";
 const orderDate = (o: Order) => o.scheduledFor || toDateKey(o.createdAt);
 
 export function RoutesLogistics() {
-  const { orders, completeDelivery, setDeliveryNote, setScheduledFor } = usePos();
+  const { orders, customers, completeDelivery, setDeliveryNote, setScheduledFor, updateCustomer, updateOrder } =
+    usePos();
   const [neighborhood, setNeighborhood] = useState<string>(ALL);
   const [date, setDate] = useState<string>(() => toDateKey());
 
@@ -183,6 +185,11 @@ export function RoutesLogistics() {
           <OrderCard
             key={o.id}
             order={o}
+            customer={customers.find((c) => c.id === o.customerId)}
+            onSavePlace={(v) => {
+              if (o.customerId) updateCustomer(o.customerId, v);
+              if (v.neighborhood !== undefined) updateOrder(o.id, { neighborhood: v.neighborhood });
+            }}
             onComplete={() => completeDelivery(o.id)}
             onSaveNote={(note) => setDeliveryNote(o.id, note)}
             onReschedule={(d) => setScheduledFor(o.id, d)}
@@ -199,19 +206,29 @@ const EMBED_KEY = import.meta.env['VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KE
 
 function OrderCard({
   order,
+  customer,
   onComplete,
   onSaveNote,
   onReschedule,
+  onSavePlace,
 }: {
   order: Order;
+  customer?: { place?: string; mapAddress?: string; neighborhood?: string };
   onComplete: () => void;
   onSaveNote: (note: string) => void;
   onReschedule: (date: string) => void;
+  onSavePlace: (v: { place?: string; mapAddress?: string; neighborhood?: string }) => void;
 }) {
   const summary = order.items.map((i) => `${i.quantity}x ${i.name}`).join(", ");
   const waMsg = `Olá ${order.customerName}, seu pedido de ovos já está na rota de entrega e chega em breve!`;
   const isPaid = order.paymentStatus === "Pago";
-  const mapsQuery = buildMapsQuery(order.address, order.neighborhood);
+  const place = customer?.place ?? "";
+  const mapAddress = customer?.mapAddress ?? "";
+  const [editingPlace, setEditingPlace] = useState(false);
+  const [placeDraft, setPlaceDraft] = useState(place);
+  const [mapDraft, setMapDraft] = useState(mapAddress);
+  const [hoodDraft, setHoodDraft] = useState(order.neighborhood || "");
+  const mapsQuery = buildMapsQuery(mapAddress || order.address, order.neighborhood);
   const mapsUrl = mapsSearchUrl(mapsQuery);
   const routeUrl = mapsDirectionsUrl(mapsQuery);
   const embedUrl = EMBED_KEY ? mapsEmbedUrl(EMBED_KEY, mapsQuery) : null;
@@ -232,6 +249,9 @@ function OrderCard({
           <div className="text-foreground font-bold text-lg leading-tight">
             {order.customerName}
           </div>
+          {place && (
+            <div className="text-sm text-gold font-medium mt-0.5 truncate">{place}</div>
+          )}
           <button
             type="button"
             onClick={() => openExternalUrl(mapsUrl)}
@@ -280,6 +300,89 @@ function OrderCard({
         />
       </div>
 
+
+      <div className="rounded-lg bg-muted/50 border border-border p-3 space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <span className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
+            <MapPin className="size-3.5" />
+            Local do entregador
+          </span>
+          {!editingPlace && (
+            <button
+              type="button"
+              onClick={() => {
+                setPlaceDraft(place);
+                setMapDraft(mapAddress);
+                setHoodDraft(order.neighborhood || "");
+                setEditingPlace(true);
+              }}
+              className="flex items-center gap-1 text-xs text-gold"
+            >
+              <Pencil className="size-3" />
+              Editar
+            </button>
+          )}
+        </div>
+        {editingPlace ? (
+          <>
+            <input
+              value={placeDraft}
+              onChange={(e) => setPlaceDraft(e.target.value)}
+              placeholder="Ex.: Mercado do Zé, Pousada Maré, Chácara do Tião"
+              className="w-full rounded-md bg-background border border-border p-2 text-sm text-foreground outline-none focus:border-gold"
+            />
+            <input
+              value={mapDraft}
+              onChange={(e) => setMapDraft(e.target.value)}
+              placeholder="Endereço exato do Google Maps"
+              className="w-full rounded-md bg-background border border-border p-2 text-sm text-foreground outline-none focus:border-gold"
+            />
+            <select
+              value={hoodDraft}
+              onChange={(e) => setHoodDraft(e.target.value)}
+              className="w-full rounded-md bg-background border border-border p-2 text-sm text-foreground outline-none focus:border-gold"
+            >
+              <option value="">Sem rota</option>
+              {NEIGHBORHOODS.map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setEditingPlace(false)}
+                className="py-2 rounded-md bg-muted text-foreground text-sm font-medium border border-border"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onSavePlace({
+                    place: placeDraft.trim(),
+                    mapAddress: mapDraft.trim(),
+                    neighborhood: hoodDraft,
+                  });
+                  setEditingPlace(false);
+                }}
+                className="py-2 rounded-md bg-gold text-gold-foreground text-sm font-semibold"
+              >
+                Salvar
+              </button>
+            </div>
+          </>
+        ) : (
+          <div className="text-sm text-foreground/90">
+            {place || <span className="text-muted-foreground italic">Sem referência salva</span>}
+            <div className="text-xs text-muted-foreground mt-0.5">
+              Rota: {order.neighborhood || "Sem rota"}
+              {mapAddress ? ` • Maps: ${mapAddress}` : ""}
+            </div>
+          </div>
+        )}
+      </div>
 
       <div className="rounded-lg bg-muted/50 border border-border p-3 space-y-2">
         <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
