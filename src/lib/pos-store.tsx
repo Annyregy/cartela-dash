@@ -63,6 +63,8 @@ const toCustomer = (r: Row): Customer => ({
   address: str(r['address']),
   neighborhood: str(r['neighborhood']),
   note: str(r['note']),
+  place: str(r['place']),
+  mapAddress: str(r['map_address']),
 });
 
 const customerRow = (c: Partial<Customer> & { id?: string }) => ({
@@ -73,6 +75,8 @@ const customerRow = (c: Partial<Customer> & { id?: string }) => ({
   ...(c.address !== undefined ? { address: c.address } : {}),
   ...(c.neighborhood !== undefined ? { neighborhood: c.neighborhood } : {}),
   ...(c.note !== undefined ? { note: c.note } : {}),
+  ...(c.place !== undefined ? { place: c.place } : {}),
+  ...(c.mapAddress !== undefined ? { map_address: c.mapAddress } : {}),
 });
 
 const toProduct = (r: Row): Product => ({

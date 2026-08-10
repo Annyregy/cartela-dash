@@ -20,30 +20,36 @@ export type Database = {
           code: number | null
           created_at: string
           id: string
+          map_address: string
           name: string
           neighborhood: string
           note: string
           phone: string
+          place: string
         }
         Insert: {
           address?: string
           code?: number | null
           created_at?: string
           id: string
+          map_address?: string
           name?: string
           neighborhood?: string
           note?: string
           phone?: string
+          place?: string
         }
         Update: {
           address?: string
           code?: number | null
           created_at?: string
           id?: string
+          map_address?: string
           name?: string
           neighborhood?: string
           note?: string
           phone?: string
+          place?: string
         }
         Relationships: []
       }
