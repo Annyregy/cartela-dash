@@ -6,6 +6,10 @@ export type Customer = {
   address: string;
   neighborhood: string;
   note?: string;
+  /** Nome do local como o entregador conhece (referência) */
+  place?: string;
+  /** Endereço exato usado no Google Maps (quando diferente do cadastro) */
+  mapAddress?: string;
 };
 
 export type Product = {
