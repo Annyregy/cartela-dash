@@ -402,7 +402,9 @@ function EditOrderModal({
   onClose: () => void;
   onSave: (patch: Partial<Omit<Order, "id" | "createdAt" | "customerId">>) => void;
 }) {
+  const { products } = usePos();
   const [items, setItems] = useState<CartItem[]>(order.items.map((i) => ({ ...i })));
+  const [productQuery, setProductQuery] = useState("");
   const [payment, setPayment] = useState<PaymentMethod>(order.paymentMethod);
   const [status, setStatus] = useState<PaymentStatus>(order.paymentStatus);
   const [discountPercent, setDiscountPercent] = useState(String(order.discountPercent ?? ""));
@@ -425,6 +427,35 @@ function EditOrderModal({
       )
     );
 
+  const addProduct = (productId: string) => {
+    const product = products.find((p) => p.id === productId);
+    if (!product || product.stock <= 0) return;
+    setItems((prev) => {
+      const current = prev.find((item) => item.productId === productId);
+      if (current) {
+        return prev.map((item) =>
+          item.productId === productId ? { ...item, quantity: item.quantity + 1 } : item
+        );
+      }
+      return [
+        ...prev,
+        {
+          productId: product.id,
+          name: product.name,
+          unit: product.unit,
+          price: product.price,
+          quantity: 1,
+        },
+      ];
+    });
+  };
+
+  const availableProducts = products.filter((product) => {
+    const alreadyInOrder = items.some((item) => item.productId === product.id && item.quantity > 0);
+    const matchesQuery = product.name.toLowerCase().includes(productQuery.trim().toLowerCase());
+    return !alreadyInOrder && product.stock > 0 && matchesQuery;
+  });
+
   const save = () => {
     const cleaned = items.filter((i) => i.quantity > 0);
     onSave({
@@ -437,6 +468,7 @@ function EditOrderModal({
       total,
       paymentMethod: payment,
       paymentStatus: status,
+      paidAmount: status === "Pago" ? total : Math.min(order.paidAmount ?? 0, total),
     });
   };
 
@@ -495,6 +527,51 @@ function EditOrderModal({
                 </div>
               </div>
             ))}
+          </div>
+
+          <div className="space-y-2 border-t border-border pt-4">
+            <div>
+              <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
+                Acrescentar produto
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">
+                O novo item será incluído neste mesmo pedido.
+              </div>
+            </div>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+              <input
+                value={productQuery}
+                onChange={(e) => setProductQuery(e.target.value)}
+                placeholder="Buscar produto..."
+                className="w-full pl-9 pr-3 py-2.5 rounded-lg bg-input text-foreground placeholder:text-muted-foreground border border-border focus:outline-none focus:ring-2 focus:ring-gold"
+              />
+            </div>
+            <div className="max-h-44 overflow-y-auto rounded-lg border border-border divide-y divide-border">
+              {availableProducts.map((product) => (
+                <button
+                  key={product.id}
+                  type="button"
+                  onClick={() => addProduct(product.id)}
+                  className="w-full flex items-center justify-between gap-3 p-3 text-left hover:bg-muted transition"
+                >
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold text-foreground truncate">{product.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {product.stock} disponíveis • {formatBRL(product.price)}
+                    </div>
+                  </div>
+                  <span className="shrink-0 flex items-center gap-1 text-xs font-semibold text-gold">
+                    <Plus className="size-4" /> Adicionar
+                  </span>
+                </button>
+              ))}
+              {availableProducts.length === 0 && (
+                <div className="p-3 text-sm text-muted-foreground text-center">
+                  Nenhum produto disponível.
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-2">
