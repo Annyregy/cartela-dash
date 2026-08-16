@@ -420,18 +420,30 @@ function EditOrderModal({
   const sV = Math.max(0, parseAmount(surchargeValue));
   const total = Math.max(0, subtotal - (subtotal * dP) / 100 - dV + (subtotal * sP) / 100 + sV);
 
+  const originalQuantity = (productId: string) =>
+    order.items.find((item) => item.productId === productId)?.quantity ?? 0;
+
+  const maxQuantity = (productId: string) => {
+    const product = products.find((item) => item.id === productId);
+    return (product?.stock ?? 0) + originalQuantity(productId);
+  };
+
   const setQty = (id: string, delta: number) =>
     setItems((prev) =>
       prev.map((i) =>
-        i.productId === id ? { ...i, quantity: Math.max(0, i.quantity + delta) } : i
+        i.productId === id
+          ? { ...i, quantity: Math.max(0, Math.min(maxQuantity(id), i.quantity + delta)) }
+          : i
       )
     );
 
   const addProduct = (productId: string) => {
     const product = products.find((p) => p.id === productId);
-    if (!product || product.stock <= 0) return;
+    if (!product) return;
     setItems((prev) => {
       const current = prev.find((item) => item.productId === productId);
+      const currentQuantity = current?.quantity ?? 0;
+      if (currentQuantity >= maxQuantity(productId)) return prev;
       if (current) {
         return prev.map((item) =>
           item.productId === productId ? { ...item, quantity: item.quantity + 1 } : item
@@ -450,11 +462,13 @@ function EditOrderModal({
     });
   };
 
-  const availableProducts = products.filter((product) => {
-    const alreadyInOrder = items.some((item) => item.productId === product.id && item.quantity > 0);
-    const matchesQuery = product.name.toLowerCase().includes(productQuery.trim().toLowerCase());
-    return !alreadyInOrder && product.stock > 0 && matchesQuery;
-  });
+  const normalizeSearch = (value: string) =>
+    value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+  const normalizedQuery = normalizeSearch(productQuery.trim());
+  const matchingProducts = products.filter((product) =>
+    normalizeSearch(`${product.name} ${product.unit}`).includes(normalizedQuery)
+  );
 
   const save = () => {
     const cleaned = items.filter((i) => i.quantity > 0);
@@ -548,25 +562,31 @@ function EditOrderModal({
               />
             </div>
             <div className="max-h-44 overflow-y-auto rounded-lg border border-border divide-y divide-border">
-              {availableProducts.map((product) => (
+              {matchingProducts.map((product) => {
+                const quantity = items.find((item) => item.productId === product.id)?.quantity ?? 0;
+                const limitReached = quantity >= maxQuantity(product.id);
+                return (
                 <button
                   key={product.id}
                   type="button"
                   onClick={() => addProduct(product.id)}
-                  className="w-full flex items-center justify-between gap-3 p-3 text-left hover:bg-muted transition"
+                  disabled={limitReached}
+                  className="w-full flex items-center justify-between gap-3 p-3 text-left hover:bg-muted transition disabled:opacity-50"
                 >
                   <div className="min-w-0">
                     <div className="text-sm font-semibold text-foreground truncate">{product.name}</div>
                     <div className="text-xs text-muted-foreground">
                       {product.stock} disponíveis • {formatBRL(product.price)}
+                      {quantity > 0 ? ` • ${quantity} no pedido` : ""}
                     </div>
                   </div>
                   <span className="shrink-0 flex items-center gap-1 text-xs font-semibold text-gold">
-                    <Plus className="size-4" /> Adicionar
+                    <Plus className="size-4" /> {limitReached ? "Sem estoque" : quantity > 0 ? "+1" : "Adicionar"}
                   </span>
                 </button>
-              ))}
-              {availableProducts.length === 0 && (
+                );
+              })}
+              {matchingProducts.length === 0 && (
                 <div className="p-3 text-sm text-muted-foreground text-center">
                   Nenhum produto disponível.
                 </div>
