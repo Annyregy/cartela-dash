@@ -46,6 +46,7 @@ export function RoutesLogistics() {
   const [neighborhood, setNeighborhood] = useState<string>(ALL);
   const [date, setDate] = useState<string>(() => toDateKey());
   const [confirmReactivate, setConfirmReactivate] = useState(false);
+  const [selectedCollectionIds, setSelectedCollectionIds] = useState<string[]>([]);
 
   const pendingCollections = useMemo(
     () =>
@@ -62,6 +63,20 @@ export function RoutesLogistics() {
         0
       ),
     [pendingCollections]
+  );
+
+  const selectedCollections = useMemo(
+    () => pendingCollections.filter((order) => selectedCollectionIds.includes(order.id)),
+    [pendingCollections, selectedCollectionIds]
+  );
+
+  const selectedCollectionsValue = useMemo(
+    () =>
+      selectedCollections.reduce(
+        (sum, order) => sum + Math.max(0, order.total - (order.paidAmount ?? 0)),
+        0
+      ),
+    [selectedCollections]
   );
 
   const dayOrders = useMemo(
@@ -177,11 +192,14 @@ export function RoutesLogistics() {
           </div>
           <button
             type="button"
-            onClick={() => setConfirmReactivate(true)}
+            onClick={() => {
+              setSelectedCollectionIds([]);
+              setConfirmReactivate(true);
+            }}
             className="w-full flex items-center justify-center gap-2 rounded-lg bg-warning text-warning-foreground py-2.5 px-4 text-sm font-semibold hover:opacity-90 transition"
           >
             <RotateCcw className="size-4" />
-            Reativar rotas para cobrança
+            Escolher pedidos para reativar
           </button>
         </div>
       )}
@@ -253,24 +271,66 @@ export function RoutesLogistics() {
       <AlertDialog open={confirmReactivate} onOpenChange={setConfirmReactivate}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Reativar rotas para cobrança?</AlertDialogTitle>
+            <AlertDialogTitle>Escolha os pedidos para reativar</AlertDialogTitle>
             <AlertDialogDescription>
-              Os {pendingCollections.length} pedidos concluídos com pagamento pendente serão
-              recolocados na rota de {formatDateLabel(date).toLowerCase()}. Os pedidos existentes
-              serão atualizados, sem criar cópias.
+              Marque somente as cobranças que deseja recolocar na rota de{" "}
+              {formatDateLabel(date).toLowerCase()}.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="max-h-[50vh] overflow-y-auto rounded-lg border border-border divide-y divide-border">
+            {pendingCollections.map((order) => {
+              const checked = selectedCollectionIds.includes(order.id);
+              const due = Math.max(0, order.total - (order.paidAmount ?? 0));
+              return (
+                <label
+                  key={order.id}
+                  className={cn(
+                    "flex items-start gap-3 p-3 cursor-pointer transition",
+                    checked ? "bg-gold/10" : "hover:bg-muted/60"
+                  )}
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() =>
+                      setSelectedCollectionIds((current) =>
+                        checked
+                          ? current.filter((id) => id !== order.id)
+                          : [...current, order.id]
+                      )
+                    }
+                    className="mt-1 size-4 accent-[hsl(var(--gold))]"
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-semibold text-foreground truncate">
+                      {order.customerName}
+                    </span>
+                    <span className="block text-xs text-muted-foreground mt-0.5">
+                      {order.neighborhood || "Sem rota"} • {formatBRL(due)} pendente
+                    </span>
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+          <div className="rounded-lg bg-muted/60 px-3 py-2 text-sm text-foreground">
+            Selecionados: <strong>{selectedCollections.length}</strong> • Total: {" "}
+            <strong>{formatBRL(selectedCollectionsValue)}</strong>
+          </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
+              disabled={selectedCollections.length === 0}
               onClick={() => {
-                pendingCollections.forEach((order) =>
+                selectedCollections.forEach((order) =>
                   updateOrder(order.id, { deliveryStatus: "ativo", scheduledFor: date })
                 );
+                setSelectedCollectionIds([]);
                 setConfirmReactivate(false);
               }}
             >
-              Reativar {pendingCollections.length} {pendingCollections.length === 1 ? "pedido" : "pedidos"}
+              Reativar {selectedCollections.length}{" "}
+              {selectedCollections.length === 1 ? "pedido" : "pedidos"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
