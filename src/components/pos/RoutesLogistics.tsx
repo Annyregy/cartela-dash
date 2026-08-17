@@ -228,7 +228,8 @@ function OrderCard({
   const [placeDraft, setPlaceDraft] = useState(place);
   const [mapDraft, setMapDraft] = useState(mapAddress);
   const [hoodDraft, setHoodDraft] = useState(order.neighborhood || "");
-  const mapsQuery = buildMapsQuery(mapAddress || order.address, order.neighborhood);
+  // O bairro organiza a rota, mas nunca é acrescentado automaticamente ao Maps.
+  const mapsQuery = buildMapsQuery(mapAddress || order.address);
   const mapsUrl = mapsSearchUrl(mapsQuery);
   const routeUrl = mapsDirectionsUrl(mapsQuery);
   const embedUrl = EMBED_KEY ? mapsEmbedUrl(EMBED_KEY, mapsQuery) : null;
