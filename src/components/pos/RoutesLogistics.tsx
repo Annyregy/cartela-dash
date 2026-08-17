@@ -7,6 +7,7 @@ import {
   Navigation,
   Pencil,
   Phone,
+  RotateCcw,
   StickyNote,
   Truck,
 } from "lucide-react";
@@ -24,6 +25,16 @@ import { buildMapsQuery, mapsDirectionsUrl, mapsEmbedUrl, mapsSearchUrl } from "
 import { NoteTemplates } from "@/components/pos/NoteTemplates";
 import { DeliveriesChart, type RouteStat } from "@/components/pos/DeliveriesChart";
 import { cn } from "@/lib/utils";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const ALL = "Todos";
 
@@ -34,6 +45,24 @@ export function RoutesLogistics() {
     usePos();
   const [neighborhood, setNeighborhood] = useState<string>(ALL);
   const [date, setDate] = useState<string>(() => toDateKey());
+  const [confirmReactivate, setConfirmReactivate] = useState(false);
+
+  const pendingCollections = useMemo(
+    () =>
+      orders.filter(
+        (o) => o.deliveryStatus === "concluido" && o.paymentStatus === "Pendente"
+      ),
+    [orders]
+  );
+
+  const pendingCollectionsValue = useMemo(
+    () =>
+      pendingCollections.reduce(
+        (sum, order) => sum + Math.max(0, order.total - (order.paidAmount ?? 0)),
+        0
+      ),
+    [pendingCollections]
+  );
 
   const dayOrders = useMemo(
     () => orders.filter((o) => orderDate(o) === date),
@@ -133,6 +162,30 @@ export function RoutesLogistics() {
 
       <DeliveriesChart data={today.byRoute} />
 
+      {pendingCollections.length > 0 && (
+        <div className="rounded-xl bg-warning/10 border border-warning/40 p-4 space-y-3">
+          <div className="flex items-start gap-3">
+            <RotateCcw className="size-5 text-warning shrink-0 mt-0.5" />
+            <div className="min-w-0">
+              <div className="font-semibold text-foreground">Cobranças fora da rota</div>
+              <div className="text-sm text-muted-foreground mt-0.5">
+                {pendingCollections.length}{" "}
+                {pendingCollections.length === 1 ? "pedido concluído ainda está" : "pedidos concluídos ainda estão"}{" "}
+                com pagamento pendente ({formatBRL(pendingCollectionsValue)}).
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setConfirmReactivate(true)}
+            className="w-full flex items-center justify-center gap-2 rounded-lg bg-warning text-warning-foreground py-2.5 px-4 text-sm font-semibold hover:opacity-90 transition"
+          >
+            <RotateCcw className="size-4" />
+            Reativar rotas para cobrança
+          </button>
+        </div>
+      )}
+
 
 
       <div className="-mx-4 px-4 overflow-x-auto">
@@ -196,6 +249,32 @@ export function RoutesLogistics() {
           />
         ))}
       </div>
+
+      <AlertDialog open={confirmReactivate} onOpenChange={setConfirmReactivate}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reativar rotas para cobrança?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Os {pendingCollections.length} pedidos concluídos com pagamento pendente serão
+              recolocados na rota de {formatDateLabel(date).toLowerCase()}. Os pedidos existentes
+              serão atualizados, sem criar cópias.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                pendingCollections.forEach((order) =>
+                  updateOrder(order.id, { deliveryStatus: "ativo", scheduledFor: date })
+                );
+                setConfirmReactivate(false);
+              }}
+            >
+              Reativar {pendingCollections.length} {pendingCollections.length === 1 ? "pedido" : "pedidos"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
