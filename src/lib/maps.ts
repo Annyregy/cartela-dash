@@ -1,15 +1,3 @@
-const CITY = "São Sebastião";
-const STATE = "SP";
-const COUNTRY = "Brasil";
-
-const norm = (v: unknown) =>
-  (v == null ? "" : String(v))
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/\s+/g, " ")
-    .trim();
-
 const clean = (v: unknown) =>
   (v == null ? "" : String(v))
     .replace(/\s+/g, " ")
@@ -37,24 +25,9 @@ const stripNoise = (address: string) => {
   return clean(out);
 };
 
-/** Monta o endereço completo, sem repetir bairro/cidade. */
-export function buildMapsQuery(address: unknown, neighborhood: unknown) {
-  const addr = stripNoise(clean(address));
-  const hood = clean(neighborhood);
-  const parts: string[] = [];
-
-  if (addr) parts.push(addr);
-
-  const addrNorm = norm(addr);
-  if (hood && !addrNorm.includes(norm(hood))) parts.push(hood);
-
-  const base = norm(parts.join(", "));
-  if (!base.includes(norm(CITY))) parts.push(`${CITY} - ${STATE}`);
-  if (!base.includes("brasil") && !base.includes("brazil")) parts.push(COUNTRY);
-
-  const query = parts.filter(Boolean).join(", ");
-  // sem endereço útil: cai para o bairro/cidade
-  return query || `${hood ? `${hood}, ` : ""}${CITY} - ${STATE}, ${COUNTRY}`;
+/** Usa somente o endereço informado. Bairro é exclusivo para a organização das rotas. */
+export function buildMapsQuery(address: unknown) {
+  return stripNoise(clean(address));
 }
 
 export const mapsSearchUrl = (query: string) =>
